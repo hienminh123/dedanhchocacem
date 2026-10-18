@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quà 20/10</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Patrick+Hand&family=Nunito:wght@500;700;800&family=Be+Vietnam+Pro:wght@400;800;900&display=swap" rel="stylesheet">
+<style>
+  /* Layout: gallery ảnh lớp dạng polaroid rải khắp nền, một tờ thiệp dán băng keo ở giữa; mỗi vòng thay nội dung tờ thiệp.
+     Kết thúc bằng postcard 16:9 vẽ bằng canvas (ảnh hiển thị = ảnh lưu về).
+     Một thế giới màu hồng giấy cố định cho cả sáng lẫn tối (chủ ý, không đổi theo theme). */
+  :root {
+    --paper: #f9e6ea;
+    --card: #fffaf5;
+    --ink: #3b1d2a;
+    --ink-soft: #7a5464;
+    --rose: #d93f72;
+    --rose-soft: #f7c9d6;
+    --leaf: #2f9a5c;
+    --chili: #df4339;
+    --gold: #f0b23a;
+    --night: #1d0f2b;      /* nền postcard */
+    --lime: #d6f55c;
+    --tape: rgba(240, 178, 58, .45);
+    --shadow: 0 18px 40px -18px rgba(59, 29, 42, .45);
+    --f-display: "Pacifico", "Brush Script MT", cursive;
+    --f-hand: "Patrick Hand", "Comic Sans MS", cursive;
+    --f-ui: "Nunito", "Segoe UI", system-ui, sans-serif;
+    --f-wrap: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+    color-scheme: light;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-ui);
+    font-size: 16px;
+    overflow-x: hidden;
+  }
+
+  /* ---------- gallery nền ---------- */
+  #collage { position: fixed; inset: 0; overflow: hidden; z-index: 0; transition: opacity .6s, filter .6s; }
+  body.focus #collage { opacity: .45; filter: blur(2px) saturate(.85); }
+  .pola {
+    position: absolute;
+    width: clamp(124px, 21vw, 214px);
+    background: #fff;
+    padding: 9px 9px 0;
+    box-shadow: 0 10px 24px -12px rgba(59, 29, 42, .5);
+    opacity: .9;
+    transition: opacity .25s, transform .25s;
+  }
+  .pola:hover { opacity: 1; transform: rotate(0deg) scale(1.05) !important; z-index: 9 !important; }
+  .pola .pic {
+    aspect-ratio: 1; max-width: 100%;
+    display: grid; place-items: center;
+    font-size: clamp(42px, 8vw, 80px);
+    overflow: hidden;
+  }
+  .pola .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pola .cap {
+    font-family: var(--f-hand);
+    font-size: clamp(13px, 1.8vw, 19px);
+    color: var(--ink);
+    text-align: center;
+    line-height: 2.1em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ---------- tờ thiệp ---------- */
+  main {
+    position: relative; z-index: 1;
+    min-height: 100%;
+    display: grid; place-items: center;
+    padding-block: 40px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .card {
+    position: relative;
+    width: min(540px, 100%);
+    background: var(--card);
+    box-shadow: var(--shadow);
+    padding: 38px clamp(20px, 5vw, 44px) 34px;
+    transform: rotate(-.8deg);
+    text-align: center;
+    transition: width .4s;
+  }
+  .card.wide { width: min(960px, 100%); transform: none; padding-inline: clamp(14px, 3vw, 32px); }
+  .card::before, .card::after {
+    content: ""; position: absolute; top: -14px;
+    width: 96px; height: 30px; background: var(--tape);
+  }
+  .card::before { left: 18px; transform: rotate(-8deg); }
+  .card::after { right: 18px; transform: rotate(7deg); }
+  .card.shake { animation: shake .35s; }
+  @keyframes shake {
+    0%,100% { translate: 0; }
+    25% { translate: -6px 0; }
+    75% { translate: 6px 0; }
+  }
+
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 16px; animation: pop .45s ease-out; }
+  @keyframes pop { from { opacity: .3; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+
+  .eyebrow {
+    margin: 0;
+    font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--rose);
+  }
+  .title {
+    margin: 0;
+    font-family: var(--f-display); font-weight: 400;
+    font-size: clamp(28px, 6.4vw, 42px);
+    line-height: 1.45;
+    text-wrap: balance;
+  }
+  .title.sm { font-size: clamp(23px, 5vw, 32px); }
+  .sub {
+    margin: 0;
+    font-family: var(--f-hand);
+    font-size: clamp(19px, 3.6vw, 23px);
+    line-height: 1.35;
+    color: var(--ink-soft);
+    max-width: 34ch;
+    text-wrap: balance;
+    min-height: 1.35em;
+  }
+  .tiny { margin: 0; font-size: 13px; color: var(--ink-soft); }
+
+  /* ---------- nút ---------- */
+  .choices { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 18px; margin-top: 6px; }
+  .btn {
+    font: 800 17px/1.2 var(--f-ui);
+    padding: 12px 26px;
+    border: 0; border-radius: 14px;
+    cursor: pointer;
+    color: #fff;
+    text-decoration: none;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 6px 0 rgba(59, 29, 42, .22);
+    transition: transform .1s, left .3s ease, top .3s ease, background .2s, opacity .2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(59, 29, 42, .22); }
+  .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.yes { background: var(--leaf); }
+  .btn.must { background: var(--rose); }
+  .btn.ghost { background: transparent; color: var(--rose); box-shadow: inset 0 0 0 2px var(--rose); }
+  .btn.dark { background: var(--night); }
+  .linkbtn { background: none; border: 0; padding: 4px; font: 700 14px var(--f-ui); color: var(--ink-soft); text-decoration: underline; cursor: pointer; }
+  .linkbtn:focus-visible { outline: 2px solid var(--gold); }
+
+  /* ---------- hộp quà ---------- */
+  .giftbox {
+    --size: 170px; --box: var(--rose); --rib: var(--gold);
+    position: relative;
+    width: var(--size); height: var(--size);
+    margin: 18px 0 4px;
+    background: none; border: 0; padding: 0; cursor: pointer;
+    animation: wiggle 1.6s ease-in-out infinite;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .giftbox:focus-visible { outline: 3px solid var(--gold); outline-offset: 8px; border-radius: 6px; }
+  @keyframes wiggle { 0%,70%,100% { transform: rotate(0); } 76% { transform: rotate(-6deg); } 84% { transform: rotate(6deg); } 92% { transform: rotate(-3deg); } }
+  .giftbox .body {
+    position: absolute; left: 7%; right: 7%; bottom: 0; height: 66%;
+    background: linear-gradient(90deg, transparent 42%, var(--rib) 42% 58%, transparent 58%), var(--box);
+    border-radius: 0 0 8px 8px;
+    box-shadow: inset 0 14px 0 rgba(0, 0, 0, .1);
+  }
+  .giftbox .lid {
+    position: absolute; left: 0; right: 0; top: 16%; height: 20%;
+    background: linear-gradient(90deg, transparent 42%, var(--rib) 42% 58%, transparent 58%), var(--box);
+    border-radius: 6px;
+    filter: brightness(1.08);
+    transition: transform .55s cubic-bezier(.3, 1.6, .5, 1), opacity .55s;
+  }
+  .giftbox .lid::before, .giftbox .lid::after {
+    content: ""; position: absolute; bottom: 100%;
+    width: 30%; height: 70%;
+    border: calc(var(--size) * .055) solid var(--rib);
+    border-radius: 50% 50% 0 50%;
+  }
+  .giftbox .lid::before { right: 50%; transform: rotate(18deg); transform-origin: right bottom; }
+  .giftbox .lid::after { left: 50%; border-radius: 50% 50% 50% 0; transform: rotate(-18deg); transform-origin: left bottom; }
+  .giftbox.open { animation: none; }
+  .giftbox.open .lid { transform: translate(30%, -160%) rotate(28deg); opacity: 0; }
+  .giftbox.open .body { animation: sink .5s .2s forwards; }
+  @keyframes sink { to { transform: scale(.6); opacity: 0; } }
+
+  .note {
+    font-family: var(--f-hand);
+    font-size: 22px; line-height: 1.4;
+    background: #fff;
+    background-image: repeating-linear-gradient(transparent 0 30px, var(--rose-soft) 30px 31px);
+    padding: 14px 22px 16px;
+    max-width: 30ch;
+    transform: rotate(2deg);
+    box-shadow: 0 8px 20px -10px rgba(59, 29, 42, .5);
+  }
+
+  /* ---------- câu hỏi ---------- */
+  .score { font-family: var(--f-hand); font-size: 20px; color: var(--ink-soft); margin: 0; }
+  .quiz-q { font-weight: 800; font-size: clamp(19px, 4vw, 22px); line-height: 1.35; margin: 0; text-wrap: balance; }
+  .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .ans {
+    font: 700 16px/1.3 var(--f-ui);
+    color: var(--ink);
+    background: #fff;
+    border: 2px solid var(--rose-soft);
+    border-radius: 12px;
+    padding: 12px 10px;
+    cursor: pointer; min-width: 0;
+    transition: background .15s, border-color .15s, opacity .15s, left .3s ease, top .3s ease;
+  }
+  .ans:hover { border-color: var(--rose); }
+  .ans:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  .ans .k { color: var(--rose); margin-right: 4px; }
+  .ans.right { background: #dff3e6; border-color: var(--leaf); }
+  .ans.wrong { background: #fde3e1; border-color: var(--chili); opacity: .6; cursor: default; text-decoration: line-through; }
+  .fleeing { position: fixed !important; z-index: 50; margin: 0; width: auto; }
+
+  .name-form { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; justify-content: center; }
+  .name-form input {
+    flex: 1 1 220px; min-width: 0;
+    font: 700 20px var(--f-ui); color: var(--ink);
+    padding: 12px 16px;
+    border: 2px solid var(--rose-soft); border-radius: 12px; background: #fff;
+  }
+  .name-form input:focus { outline: none; border-color: var(--rose); }
+
+  .drop {
+    width: min(220px, 100%); aspect-ratio: 4 / 5;
+    display: grid; place-items: center;
+    border: 3px dashed var(--rose); border-radius: 16px;
+    background: #fff; cursor: pointer; overflow: hidden;
+    font: 800 16px/1.4 var(--f-ui); color: var(--rose);
+    padding: 16px; text-align: center;
+    transition: background .2s;
+  }
+  .drop:hover, .drop.over { background: #fff0f4; }
+  .drop.has { padding: 0; border-style: solid; }
+  .drop img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .drop .plus { display: block; font-size: 44px; line-height: 1; margin-bottom: 6px; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ---------- vòng quay ---------- */
+  .wheel-wrap { position: relative; width: min(300px, 74vw); aspect-ratio: 1; max-width: 100%; margin-top: 10px; }
+  .pointer {
+    position: absolute; left: 50%; top: -14px; z-index: 2;
+    width: 0; height: 0; transform: translateX(-50%);
+    border-left: 14px solid transparent; border-right: 14px solid transparent;
+    border-top: 28px solid var(--ink);
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .25));
+  }
+  .wheel {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 6px solid #fff;
+    box-shadow: 0 10px 26px -10px rgba(59, 29, 42, .6);
+    transition: transform 4.2s cubic-bezier(.12, .7, .14, 1);
+  }
+  .wheel::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: 18%; height: 18%; transform: translate(-50%, -50%);
+    background: #fff; border-radius: 50%;
+    box-shadow: 0 0 0 4px var(--ink);
+  }
+  .slice-label {
+    position: absolute; left: 50%; top: 50%;
+    width: 50%; height: 2em; margin-top: -1em;
+    transform-origin: 0 50%;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 8%;
+    font: 800 var(--lbl, 13px)/1.1 var(--f-ui);
+    color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+    white-space: nowrap;
+  }
+
+  /* ---------- postcard ---------- */
+  .postcard {
+    width: 100%; aspect-ratio: 16 / 9; max-width: 100%;
+    border-radius: 14px; overflow: hidden;
+    background: var(--night);
+    box-shadow: 0 24px 50px -20px rgba(29, 15, 43, .7);
+    display: grid; place-items: center;
+    color: var(--lime); font: 800 16px var(--f-wrap);
+  }
+  .postcard img { width: 100%; height: 100%; display: block; -webkit-touch-callout: default; }
+  .share {
+    width: 100%;
+    display: grid; gap: 14px; justify-items: center;
+    background: var(--night); color: #fff;
+    border-radius: 14px;
+    padding: 22px clamp(16px, 4vw, 30px);
+  }
+  .share p { margin: 0; max-width: 46ch; line-height: 1.5; font-size: 17px; text-wrap: balance; }
+  .share .handle { color: var(--lime); font-weight: 800; }
+  .share .row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .share .btn { box-shadow: none; }
+  .share .btn.lime { background: var(--lime); color: var(--night); }
+  .share .btn.outline { background: transparent; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .5); }
+  .share .tiny { color: rgba(255, 255, 255, .7); }
+
+  #fx { position: fixed; inset: 0; pointer-events: none; z-index: 60; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    .wheel { transition-duration: 1.2s; }
+  }
+</style>
+
+<div id="collage" aria-hidden="true"></div>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<main>
+  <div class="card" id="card">
+
+    <!-- Mở đầu -->
+    <section class="stage" id="s-ask">
+      <p class="eyebrow">20 · 10 · 2026</p>
+      <h1 class="title" id="ask-title">Dành cho các em 66D</h1>
+      <p class="sub" id="ask-sub">Có một món quà 20/10 đang chờ em nhận.</p>
+      <div class="choices">
+        <button class="btn yes" id="ask-yes" type="button">Nhận</button>
+        <button class="btn must" id="ask-must" type="button">Phải nhận</button>
+      </div>
+      <p class="tiny">Chỉ có hai lựa chọn này thôi nha.</p>
+    </section>
+
+    <!-- Vòng 1: hộp lồng hộp -->
+    <section class="stage" id="s-box" hidden>
+      <p class="eyebrow">Thử thách 1/3 · Mở quà</p>
+      <h2 class="title sm" id="box-title">Quà đây! Bấm vào hộp để mở</h2>
+      <button class="giftbox" id="giftbox" type="button" aria-label="Mở hộp quà">
+        <span class="body"></span><span class="lid"></span>
+      </button>
+      <p class="sub" id="box-sub">Hộp hơi nặng, chắc quà to lắm.</p>
+      <div class="note" id="box-note" hidden>Muốn nhận quà thì phải trả lời vài câu hỏi về 66D trước nha. Dễ lắm, hứa đó.</div>
+      <button class="btn yes" id="box-next" type="button" hidden>Làm bài</button>
+    </section>
+
+    <!-- Vòng 2: câu hỏi về lớp + tên + ảnh -->
+    <section class="stage" id="s-quiz" hidden>
+      <p class="eyebrow">Thử thách 2/3 · Em hiểu 66D đến đâu</p>
+      <p class="score" id="quiz-count">Câu 1</p>
+      <p class="quiz-q" id="quiz-q"></p>
+      <div class="answers" id="quiz-a"></div>
+
+      <form class="name-form" id="name-form" hidden>
+        <label class="visually-hidden" for="name-input">Tên của em</label>
+        <input id="name-input" name="name" type="text" maxlength="24" autocomplete="given-name" placeholder="Tên em là...">
+        <button class="btn yes" type="submit">Xong</button>
+      </form>
+
+      <div class="stage" id="photo-step" hidden>
+        <label class="drop" id="drop" for="photo-input">
+          <span id="drop-text"><span class="plus">+</span>Bấm để chọn ảnh<br>(hoặc kéo ảnh vào đây)</span>
+          <img id="photo-preview" alt="Ảnh em vừa chọn" hidden>
+        </label>
+        <input class="visually-hidden" type="file" id="photo-input" accept="image/*">
+        <button class="btn yes" id="photo-next" type="button" disabled>Nhận quà thôi</button>
+        <button class="linkbtn" id="photo-skip" type="button">Chưa có ảnh? Làm thiệp không ảnh</button>
+      </div>
+
+      <p class="sub" id="quiz-sub"></p>
+    </section>
+
+    <!-- Vòng 3: vòng quay -->
+    <section class="stage" id="s-wheel" hidden>
+      <p class="eyebrow">Thử thách 3/3 · Vòng quay may mắn</p>
+      <h2 class="title sm" id="wheel-title">Quay để chọn quà</h2>
+      <div class="wheel-wrap"><div class="pointer"></div><div class="wheel" id="wheel"></div></div>
+      <p class="sub" id="wheel-sub">Ô nào cũng là quà thật. Chắc vậy.</p>
+      <button class="btn yes" id="spin" type="button">Quay</button>
+    </section>
+
+    <!-- Kết: postcard -->
+    <section class="stage" id="s-final" hidden>
+      <p class="eyebrow">Thiệp 20/10 của em</p>
+      <div class="postcard" id="postcard">Đang in thiệp...</div>
+      <div class="share">
+        <p>Chia sẻ chiếc thiệp này lên Instagram và tag <span class="handle" id="ig-handle">@lop66d</span> để nhận quà trực tiếp từ các bạn nam nhé!</p>
+        <div class="row">
+          <button class="btn lime" id="save" type="button">Lưu ảnh thiệp</button>
+          <button class="btn outline" id="copy-ig" type="button">Copy tên IG lớp</button>
+          <a class="btn outline" id="open-ig" href="https://instagram.com/" target="_blank" rel="noopener">Mở Instagram</a>
+        </div>
+        <p class="tiny" id="save-hint">Trên điện thoại: nhấn giữ vào thiệp để lưu ảnh, hoặc chụp màn hình.</p>
+      </div>
+      <button class="btn ghost" id="replay" type="button">Chơi lại từ đầu</button>
+    </section>
+
+  </div>
+</main>
+
+<script>
+/* ======================== SỬA Ở ĐÂY ======================== */
+const CONFIG = {
+  className: "66D",
+  instagram: "lop66d",                 // tên IG của lớp, không cần @
+  openTitle: "Dành cho các em 66D",    // tiêu đề màn đầu (link có ?ten=Lan sẽ thành "Dành cho em Lan")
+
+  // Ảnh lớp cho gallery nền. Bỏ ảnh vào thư mục photos/ cạnh file này rồi liệt kê ở đây.
+  // Mỗi dòng là "đường dẫn" hoặc ["đường dẫn", "chú thích dưới ảnh"].
+  photos: [
+    // ["photos/1.jpg", "Buổi đầu nhập học"],
+    // "photos/2.jpg",
+  ],
+
+  // Câu hỏi về lớp. correct = vị trí đáp án đúng (0 = A, 1 = B, ...), "all" = ý nào cũng đúng.
+  // flee = vị trí đáp án sẽ chạy trốn khi bấm. Câu cuối "Tên em là gì?" và bước up ảnh luôn được thêm tự động.
+  quiz: [
+    { q: "66D có tất cả bao nhiêu thành viên?", a: ["42", "45", "48", "51"], correct: 1 },
+    { q: "Lớp trưởng 66D là ai?", a: ["Bạn A", "Bạn B", "Bạn C", "Bạn D"], correct: 0 },
+    { q: "Môn nào khiến cả lớp \"khóc\" nhiều nhất?", a: ["Kinh tế lượng", "Xác suất thống kê", "Triết học", "Toán cao cấp"], correct: 0 },
+    { q: "Ai là người xinh nhất 66D?", a: ["Em", "Vẫn là em", "Không ai khác ngoài em", "Tất cả các đáp án trên"], correct: "all" },
+    { q: "Con trai 66D có dễ thương không?", a: ["Có", "Rất có", "Cực kỳ có", "Không"], correct: "all", flee: 3 }
+  ],
+
+  // Vòng quay: thêm/bớt ô thoải mái. spins = lần lượt quay trúng ô nào; lần cuối dẫn tới thiệp.
+  wheel: {
+    items: ["1 tỷ đồng", "iPhone 17", "Đà Lạt 3N2Đ", "Lời chúc", "Trà sữa", "Gấu bông"],
+    spins: [
+      { land: "1 tỷ đồng", title: "Trúng 1 tỷ đồng!", sub: "Thủ quỹ vừa báo quỹ lớp còn 37.000đ. Quay lại nha.", btn: "Quay lại" },
+      { land: "iPhone 17", title: "Trúng iPhone 17!", sub: "Kho báo hết hàng rồi. Quay lần cuối, hứa đó.", btn: "Quay lần cuối" },
+      { land: "Lời chúc", title: "Giải đặc biệt: Lời chúc 20/10", sub: "Giải này thì lớp có thật.", btn: "Nhận thiệp" }
+    ]
+  },
+
+  // Lời chúc in trên thiệp. {ten} sẽ được thay bằng tên em nhập.
+  wish: "Chúc {ten} 20/10 luôn xinh, luôn vui, deadline nào cũng kịp và lúc nào cũng có người chiều.",
+  signature: "Từ các bạn nam 66D"
+};
+/* =========================================================== */
+
+const $ = id => document.getElementById(id);
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const IG = CONFIG.instagram.replace(/^@/, "");
+
+const state = { name: "", photo: null, wrongs: 0, firstTry: 0, boxes: 0, spins: 0 };
+try {
+  const t = new URLSearchParams(location.search).get("ten");
+  if (t && t.trim()) state.name = cap(t.trim().slice(0, 24));
+} catch (e) {}
+
+$("ask-title").textContent = state.name ? `Dành cho em ${state.name}` : CONFIG.openTitle;
+$("ig-handle").textContent = "@" + IG;
+$("open-ig").href = "https://instagram.com/" + encodeURIComponent(IG);
+document.title = "Quà 20/10 · " + CONFIG.className;
+
+/* ---------- gallery nền ---------- */
+const ITEMS = [
+  ["💐", "Hoa cho em"], ["🧋", "Trà sữa 100% đường"], ["🧸", "Gấu bông to bằng người"],
+  ["🎂", "Bánh kem"], ["💄", "Son màu đỏ"], ["💌", "Thiệp viết tay"], ["🍫", "Socola"],
+  ["🌹", "Một bông hồng"], ["📒", "Vở chép bài hộ"], ["🎀", "Nơ buộc tóc"], ["👘", "Áo dài"],
+  ["🍰", "Bánh ngọt"], ["🌷", "Hoa tulip"], ["☕", "Cà phê sáng"], ["🍓", "Dâu tây"], ["🎁", "Quà bí mật"]
+];
+const TINTS = ["#fde2e8", "#fff1d6", "#e3f2e6", "#e9e3f7", "#fbe0d4", "#dff0f5"];
+const PHOTOS = CONFIG.photos.map(p => Array.isArray(p) ? p : [p, CONFIG.className]);
+function buildCollage() {
+  const box = $("collage");
+  box.innerHTML = "";
+  const w = innerWidth, h = innerHeight;
+  const cell = Math.max(132, Math.min(220, w * 0.21));
+  const cols = Math.ceil(w / cell) + 1, rows = Math.ceil(h / (cell * 1.15)) + 1;
+  let i = 0;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++, i++) {
+    const p = document.createElement("div");
+    p.className = "pola";
+    p.style.left = (c * cell - cell * 0.35 + (Math.random() - .5) * cell * 0.35) + "px";
+    p.style.top = (r * cell * 1.15 - cell * 0.4 + (Math.random() - .5) * cell * 0.3) + "px";
+    p.style.transform = `rotate(${(Math.random() * 14 - 7).toFixed(1)}deg)`;
+    p.style.zIndex = Math.floor(Math.random() * 5);
+    const pic = document.createElement("div");
+    pic.className = "pic";
+    pic.style.background = TINTS[i % TINTS.length];
+    const capEl = document.createElement("div");
+    capEl.className = "cap";
+    if (PHOTOS.length) {
+      const [src, label] = PHOTOS[(i * 5 + r) % PHOTOS.length];
+      const img = document.createElement("img");
+      img.src = src; img.alt = ""; img.loading = "lazy";
+      pic.appendChild(img);
+      capEl.textContent = label;
+    } else {
+      const [emo, label] = ITEMS[(i * 7 + r) % ITEMS.length];
+      pic.textContent = emo;
+      capEl.textContent = label;
+    }
+    p.append(pic, capEl);
+    box.appendChild(p);
+  }
+}
+buildCollage();
+let rT; addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(buildCollage, 250); });
+
+/* ---------- chuyển vòng ---------- */
+function show(id) {
+  document.querySelectorAll("#card > .stage").forEach(s => s.hidden = s.id !== id);
+  document.body.classList.toggle("focus", id !== "s-ask");
+  $("card").classList.toggle("wide", id === "s-final");
+  window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+}
+function shakeCard() {
+  const c = $("card"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake");
+}
+function flee(btn) {
+  const r = btn.getBoundingClientRect();
+  if (!btn.classList.contains("fleeing")) {
+    btn.style.left = r.left + "px"; btn.style.top = r.top + "px";
+    btn.classList.add("fleeing");
+    void btn.offsetWidth;
+  }
+  const pad = 16;
+  const maxX = Math.max(pad, innerWidth - r.width - pad);
+  const maxY = Math.max(pad, innerHeight - r.height - pad);
+  btn.style.left = (pad + Math.random() * (maxX - pad)) + "px";
+  btn.style.top = (pad + Math.random() * (maxY - pad)) + "px";
+}
+function unflee(btn) { btn.classList.remove("fleeing"); btn.style.left = btn.style.top = ""; }
+
+/* ================== MỞ ĐẦU ================== */
+function goBox() { burst(70); show("s-box"); }
+$("ask-yes").addEventListener("click", goBox);
+$("ask-must").addEventListener("click", goBox);
+
+/* ================== VÒNG 1: HỘP LỒNG HỘP ================== */
+const BOXES = [
+  { size: 170, box: "#d93f72", rib: "#f0b23a" },
+  { size: 135, box: "#f0b23a", rib: "#d93f72" },
+  { size: 100, box: "#7a3a5c", rib: "#f7c9d6" }
+];
+const AFTER_OPEN = [
+  ["Ơ, bên trong còn một hộp nữa", "Mở tiếp đi, sắp tới rồi."],
+  ["Hộp nhỏ hơn rồi", "Nhỏ vậy chắc là trang sức 💍"],
+  ["Bên trong là... một tờ giấy", ""]
+];
+let boxBusy = false;
+const gift = $("giftbox");
+function styleBox() {
+  const b = BOXES[state.boxes];
+  gift.style.setProperty("--size", b.size + "px");
+  gift.style.setProperty("--box", b.box);
+  gift.style.setProperty("--rib", b.rib);
+}
+styleBox();
+gift.addEventListener("click", async () => {
+  if (boxBusy) return;
+  boxBusy = true;
+  gift.classList.add("open");
+  await sleep(reduced ? 50 : 750);
+  const [t, s] = AFTER_OPEN[state.boxes];
+  $("box-title").textContent = t;
+  $("box-sub").textContent = s;
+  state.boxes++;
+  if (state.boxes < BOXES.length) {
+    gift.classList.remove("open");
+    styleBox();
+    gift.style.animation = "none"; void gift.offsetWidth; gift.style.animation = "";
+    boxBusy = false;
+  } else {
+    gift.hidden = true;
+    $("box-sub").hidden = true;
+    $("box-note").hidden = false;
+    $("box-next").hidden = false;
+  }
+});
+$("box-next").addEventListener("click", () => { show("s-quiz"); renderQuiz(); });
+
+/* ================== VÒNG 2: CÂU HỎI VỀ LỚP ================== */
+const QUIZ = CONFIG.quiz;
+const TOTAL = QUIZ.length + 1;
+const WRONG_MSG = ["Sai rồi nha. Học 66D mà không biết hả?", "Chưa đúng, thử lại đi.", "Gần đúng rồi đó.", "Hỏi bạn ngồi cạnh thử xem."];
+let qi = 0, qBusy = false, qMissed = false, qEscapes = 0;
+function renderQuiz() {
+  if (qi >= QUIZ.length) return renderNameStep();
+  const item = QUIZ[qi];
+  qMissed = false; qEscapes = 0;
+  $("quiz-count").textContent = `Câu ${qi + 1}/${TOTAL}`;
+  $("quiz-q").textContent = item.q;
+  $("quiz-sub").textContent = "";
+  const wrap = $("quiz-a");
+  wrap.innerHTML = "";
+  item.a.forEach((txt, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "ans";
+    b.innerHTML = `<span class="k">${"ABCDEF"[i]}.</span>`;
+    b.append(txt);
+    if (item.flee === i) {
+      const run = () => {
+        if (b.dataset.surrender) return false;
+        qEscapes++;
+        if (qEscapes > 5) {
+          unflee(b); b.dataset.surrender = "1";
+          b.innerHTML = `<span class="k">${"ABCDEF"[i]}.</span>Có luôn`;
+          $("quiz-sub").textContent = "Đáp án này tự đổi ý rồi.";
+          return true;
+        }
+        flee(b);
+        if (qEscapes === 1) $("quiz-sub").textContent = "Đáp án này bị lỗi, chọn cái khác đi.";
+        return true;
+      };
+      b.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") run(); });
+      b.addEventListener("click", () => { if (!run()) answer(b, i); });
+    } else b.addEventListener("click", () => answer(b, i));
+    wrap.appendChild(b);
+  });
+}
+async function answer(b, i) {
+  if (qBusy || b.classList.contains("wrong")) return;
+  const item = QUIZ[qi];
+  const ok = item.correct === "all" || item.correct === i || b.dataset.surrender;
+  if (!ok) {
+    b.classList.add("wrong");
+    qMissed = true; state.wrongs++;
+    $("quiz-sub").textContent = WRONG_MSG[(state.wrongs - 1) % WRONG_MSG.length];
+    shakeCard();
+    return;
+  }
+  qBusy = true;
+  document.querySelectorAll(".ans.fleeing").forEach(unflee);
+  b.classList.add("right");
+  if (!qMissed) state.firstTry++;
+  $("quiz-sub").textContent = item.correct === "all" ? "Ý nào cũng đúng. Câu này cho điểm." : "Chính xác!";
+  await sleep(1100);
+  qi++;
+  qBusy = false;
+  renderQuiz();
+}
+function renderNameStep() {
+  $("quiz-count").textContent = `Câu ${TOTAL}/${TOTAL} · câu dễ nhất`;
+  $("quiz-q").textContent = "Tên em là gì?";
+  $("quiz-a").innerHTML = "";
+  $("quiz-sub").textContent = "Để in lên thiệp nhận quà.";
+  $("name-form").hidden = false;
+  $("name-input").value = state.name;
+  $("name-input").focus({ preventScroll: true });
+}
+$("name-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = $("name-input").value.trim();
+  if (!v) { $("quiz-sub").textContent = "Chưa nhập tên kìa."; shakeCard(); return; }
+  state.name = cap(v.slice(0, 24));
+  $("name-form").hidden = true;
+  $("quiz-count").textContent = "Bước cuối";
+  $("quiz-q").textContent = `${state.name} ơi, gửi một tấm ảnh thật xinh để in lên thiệp nha`;
+  $("quiz-sub").textContent = "Ảnh chỉ nằm trên máy của em, không gửi đi đâu cả.";
+  $("photo-step").hidden = false;
+});
+
+function loadPhoto(file) {
+  if (!file || !file.type.startsWith("image/")) { $("quiz-sub").textContent = "File này không phải ảnh, chọn ảnh khác nha."; return; }
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    state.photo = img;
+    $("photo-preview").src = url;
+    $("photo-preview").hidden = false;
+    $("drop-text").hidden = true;
+    $("drop").classList.add("has");
+    $("photo-next").disabled = false;
+    $("quiz-sub").textContent = "Xinh vậy. Bấm vào ảnh nếu muốn đổi tấm khác.";
+  };
+  img.onerror = () => { $("quiz-sub").textContent = "Không mở được ảnh này, thử ảnh JPG hoặc PNG nha."; };
+  img.src = url;
+}
+$("photo-input").addEventListener("change", e => loadPhoto(e.target.files[0]));
+const drop = $("drop");
+drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); loadPhoto(e.dataTransfer.files[0]); });
+$("photo-next").addEventListener("click", () => { burst(40); show("s-wheel"); });
+$("photo-skip").addEventListener("click", () => { state.photo = null; show("s-wheel"); });
+
+/* ================== VÒNG 3: VÒNG QUAY ================== */
+const WHEEL_COLORS = ["#d93f72", "#f0b23a", "#2f9a5c", "#7a3a5c", "#e8679a", "#4f86c6", "#ef7d3c", "#8a5cd1"];
+const PRIZES = CONFIG.wheel.items;
+const SPINS = CONFIG.wheel.spins;
+const wheel = $("wheel");
+const seg = 360 / PRIZES.length;
+wheel.style.setProperty("--lbl", PRIZES.length > 8 ? "10px" : PRIZES.length > 6 ? "11.5px" : "13px");
+wheel.style.background = "conic-gradient(" + PRIZES.map((p, i) => {
+  let col = WHEEL_COLORS[i % WHEEL_COLORS.length];
+  if (i === PRIZES.length - 1 && i % WHEEL_COLORS.length === 0 && i > 0) col = WHEEL_COLORS[1];
+  return `${col} ${i * seg}deg ${(i + 1) * seg}deg`;
+}).join(",") + ")";
+PRIZES.forEach((p, i) => {
+  const l = document.createElement("div");
+  l.className = "slice-label";
+  l.style.transform = `rotate(${i * seg + seg / 2 - 90}deg)`;
+  l.textContent = p;
+  wheel.appendChild(l);
+});
+let rot = 0, spinning = false;
+$("spin").addEventListener("click", () => {
+  if (spinning) return;
+  if (state.spins >= SPINS.length) { goFinal(); return; }
+  spinning = true;
+  const plan = SPINS[state.spins];
+  let idx = PRIZES.indexOf(plan.land);
+  if (idx < 0) idx = Math.floor(Math.random() * PRIZES.length);
+  $("spin").disabled = true;
+  $("wheel-title").textContent = "Đang quay...";
+  $("wheel-sub").textContent = "";
+  const center = idx * seg + seg / 2;
+  const jitter = (Math.random() - .5) * seg * 0.6;
+  const target = ((360 - center - jitter) % 360 + 360) % 360;
+  const cur = ((rot % 360) + 360) % 360;
+  rot += 360 * 6 + ((target - cur + 360) % 360);
+  wheel.style.transform = `rotate(${rot}deg)`;
+});
+wheel.addEventListener("transitionend", e => {
+  if (e.target !== wheel || !spinning) return;
+  const plan = SPINS[state.spins];
+  $("wheel-title").textContent = plan.title;
+  $("wheel-sub").textContent = plan.sub;
+  $("spin").textContent = plan.btn;
+  $("spin").disabled = false;
+  state.spins++;
+  if (state.spins < SPINS.length) shakeCard(); else burst(50);
+  spinning = false;
+});
+
+/* ================== KẾT: POSTCARD 16:9 ================== */
+let cardBlob = null;
+async function goFinal() {
+  show("s-final");
+  burst(110);
+  setTimeout(() => burst(60), 900);
+  const canvas = await drawPostcard();
+  const url = canvas.toDataURL("image/png");
+  const img = new Image();
+  img.alt = `Thiệp 20/10 của ${state.name || "em"} từ lớp ${CONFIG.className}`;
+  img.src = url;
+  $("postcard").replaceChildren(img);
+  canvas.toBlob(b => cardBlob = b, "image/png");
+}
+
+function roundRect(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+}
+function wrapLines(g, text, maxW) {
+  const words = text.split(/\s+/); const lines = []; let line = "";
+  for (const w of words) {
+    const t = line ? line + " " + w : w;
+    if (g.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+async function drawPostcard() {
+  const W = 1600, H = 900;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d");
+  const FW = '"Be Vietnam Pro", "Segoe UI", Arial, sans-serif';
+  try {
+    await Promise.all([
+      document.fonts.load(`900 100px "Be Vietnam Pro"`, "Ắ"),
+      document.fonts.load(`800 40px "Be Vietnam Pro"`, "Ắ"),
+      document.fonts.load(`400 30px "Be Vietnam Pro"`, "Ắ"),
+      document.fonts.load(`40px Pacifico`, "Ắ")
+    ]);
+  } catch (e) {}
+  const name = state.name || "Em";
+  const NIGHT = "#1d0f2b", LIME = "#d6f55c", PINK = "#ff4f9a", ORANGE = "#ff9b3d", VIOLET = "#7b5cff", CREAM = "#fff4ea";
+
+  // nền + khối màu kiểu Wrapped
+  g.fillStyle = NIGHT; g.fillRect(0, 0, W, H);
+  const dot = (x, y, r, col) => { g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); };
+  dot(1560, -40, 210, LIME);
+  dot(90, 930, 330, PINK);
+  dot(1640, 640, 110, ORANGE);
+  g.lineWidth = 26; g.strokeStyle = VIOLET;
+  g.beginPath(); g.arc(690, 72, 44, 0, Math.PI * 2); g.stroke();
+  g.lineWidth = 12; g.strokeStyle = PINK; g.lineCap = "round";
+  g.beginPath();
+  for (let x = 1180; x <= 1500; x += 4) { const y = 205 + Math.sin((x - 1180) / 22) * 12; x === 1180 ? g.moveTo(x, y) : g.lineTo(x, y); }
+  g.stroke();
+
+  // khung polaroid + ảnh
+  g.save();
+  g.translate(375, 455); g.rotate(-5 * Math.PI / 180);
+  g.shadowColor = "rgba(0,0,0,.45)"; g.shadowBlur = 40; g.shadowOffsetY = 18;
+  g.fillStyle = "#fff"; g.fillRect(-255, -325, 510, 650);
+  g.shadowColor = "transparent";
+  const px = -237, py = -307, pw = 474, ph = 530;
+  if (state.photo) {
+    const im = state.photo, s = Math.max(pw / im.naturalWidth, ph / im.naturalHeight);
+    const dw = im.naturalWidth * s, dh = im.naturalHeight * s;
+    g.save(); g.beginPath(); g.rect(px, py, pw, ph); g.clip();
+    g.drawImage(im, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
+    g.restore();
+  } else {
+    const grd = g.createLinearGradient(px, py, px + pw, py + ph);
+    grd.addColorStop(0, "#ff7fb0"); grd.addColorStop(1, "#7b5cff");
+    g.fillStyle = grd; g.fillRect(px, py, pw, ph);
+    g.fillStyle = "#fff"; g.font = `900 260px ${FW}`; g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(name.charAt(0).toUpperCase(), 0, py + ph / 2 + 10);
+  }
+  g.fillStyle = NIGHT; g.font = `38px Pacifico, cursive`; g.textAlign = "center"; g.textBaseline = "alphabetic";
+  g.fillText(`${name} · ${CONFIG.className}`, 0, 290, 460);
+  g.restore();
+
+  // sticker 20/10
+  g.save();
+  g.translate(615, 175); g.rotate(12 * Math.PI / 180);
+  dot(0, 0, 82, LIME);
+  g.fillStyle = NIGHT; g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = `900 46px ${FW}`; g.fillText("20/10", 0, -6);
+  g.font = `800 17px ${FW}`; g.fillText("WOMEN'S DAY", 0, 32);
+  g.restore();
+
+  // cột chữ bên phải
+  const X = 760, MAXW = 760;
+  g.textAlign = "left"; g.textBaseline = "alphabetic";
+  if ("letterSpacing" in g) g.letterSpacing = "4px";
+  g.fillStyle = LIME; g.font = `800 26px ${FW}`;
+  g.fillText(`${CONFIG.className} WRAPPED · 20.10.2026`, X, 150);
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+
+  g.fillStyle = "rgba(255,244,234,.75)"; g.font = `400 34px ${FW}`;
+  g.fillText("Thiệp 20/10 dành cho", X, 260);
+  let fs = 150;
+  do { g.font = `900 ${fs}px ${FW}`; fs -= 4; } while (g.measureText(name).width > MAXW && fs > 60);
+  g.fillStyle = "#fff"; g.fillText(name, X, 400);
+
+  const stats = [
+    [String(state.boxes || 3), "hộp quà đã mở", LIME],
+    [`${state.firstTry}/${QUIZ.length}`, "câu về lớp đúng ngay lần đầu", PINK],
+    [String(state.spins || SPINS.length), "lần quay để trúng một lời chúc", ORANGE]
+  ];
+  stats.forEach(([num, label, col], i) => {
+    const sx = X + i * 255;
+    g.fillStyle = col; g.font = `900 96px ${FW}`;
+    g.fillText(num, sx, 540, 235);
+    g.fillStyle = CREAM; g.font = `400 25px ${FW}`;
+    wrapLines(g, label, 220).slice(0, 2).forEach((ln, k) => g.fillText(ln, sx, 584 + k * 33));
+  });
+
+  g.fillStyle = "#fff"; g.font = `800 33px ${FW}`;
+  const wish = CONFIG.wish.replace(/\{ten\}/g, name);
+  wrapLines(g, wish, MAXW).slice(0, 3).forEach((ln, k) => g.fillText(ln, X, 712 + k * 46));
+
+  g.font = `800 28px ${FW}`;
+  g.fillStyle = PINK; g.fillText(CONFIG.signature, X, 850);
+  g.textAlign = "right"; g.fillStyle = LIME; g.fillText("@" + IG, 1520, 850);
+  return c;
+}
+
+function fileName() {
+  const slug = (state.name || "em").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+  return `thiep-20-10-${CONFIG.className.toLowerCase()}-${slug}.png`;
+}
+$("save").addEventListener("click", async () => {
+  if (!cardBlob) { $("save-hint").textContent = "Thiệp đang in, đợi một chút rồi bấm lại nha."; return; }
+  const file = new File([cardBlob], fileName(), { type: "image/png" });
+  const touch = matchMedia("(pointer: coarse)").matches;
+  if (touch && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: "Thiệp 20/10" }); return; }
+    catch (e) { if (e.name === "AbortError") return; }
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(cardBlob); a.download = file.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  $("save-hint").textContent = "Nếu ảnh chưa tải về, nhấn giữ (hoặc chuột phải) vào thiệp để lưu, hoặc chụp màn hình.";
+});
+$("copy-ig").addEventListener("click", async () => {
+  const txt = "@" + IG;
+  try { await navigator.clipboard.writeText(txt); $("copy-ig").textContent = "Đã copy " + txt; }
+  catch (e) {
+    const r = document.createRange(); r.selectNodeContents($("ig-handle"));
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    $("copy-ig").textContent = "Đã bôi đen, bấm Copy nha";
+  }
+});
+$("replay").addEventListener("click", () => location.reload());
+
+/* ================== HIỆU ỨNG CÁNH HOA ================== */
+const fx = $("fx"), ctx = fx.getContext("2d");
+let parts = [], raf = 0;
+function fitFx() { const d = devicePixelRatio || 1; fx.width = innerWidth * d; fx.height = innerHeight * d; ctx.setTransform(d, 0, 0, d, 0, 0); }
+fitFx(); addEventListener("resize", fitFx);
+const FX_COLORS = ["#d93f72", "#f0b23a", "#f7c9d6", "#e8679a", "#2f9a5c", "#ffffff"];
+function burst(n) {
+  if (reduced) return;
+  for (let k = 0; k < n; k++) parts.push({
+    x: innerWidth / 2 + (Math.random() - .5) * innerWidth * .7,
+    y: innerHeight * .45,
+    vx: (Math.random() - .5) * 11, vy: -Math.random() * 12 - 4,
+    r: Math.random() * 6 + 5, a: Math.random() * 6.28, va: (Math.random() - .5) * .25,
+    c: FX_COLORS[k % FX_COLORS.length], heart: Math.random() < .35, life: 0
+  });
+  if (!raf) raf = requestAnimationFrame(tick);
+}
+function drawHeart(s) {
+  ctx.beginPath();
+  ctx.moveTo(0, s * .3);
+  ctx.bezierCurveTo(-s, -s * .4, -s * .4, -s, 0, -s * .35);
+  ctx.bezierCurveTo(s * .4, -s, s, -s * .4, 0, s * .3);
+  ctx.fill();
+}
+function tick() {
+  ctx.clearRect(0, 0, innerWidth, innerHeight);
+  parts = parts.filter(p => p.y < innerHeight + 40 && p.life < 400);
+  for (const p of parts) {
+    p.life++; p.vy += .22; p.vx *= .99; p.x += p.vx + Math.sin(p.life / 12) * .6; p.y += p.vy; p.a += p.va;
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c;
+    if (p.heart) drawHeart(p.r * 1.3);
+    else { ctx.beginPath(); ctx.ellipse(0, 0, p.r, p.r * .55, 0, 0, 6.28); ctx.fill(); }
+    ctx.restore();
+  }
+  raf = parts.length ? requestAnimationFrame(tick) : 0;
+}
+</script>
+
+</html>
