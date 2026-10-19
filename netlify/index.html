@@ -128,7 +128,7 @@
     opacity: .9;
     transition: opacity .25s, transform .25s;
   }
-  .pola:hover { opacity: 1; transform: rotate(0deg) scale(1.05) !important; z-index: 9 !important; }
+  .pola:hover { opacity: 1; transform: rotate(0deg) scale(1.05) !important; z-index: 30 !important; }
   .pola .pic {
     aspect-ratio: 1; max-width: 100%;
     display: grid; place-items: center;
@@ -138,6 +138,12 @@
   .pola .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .pola.photo { width: clamp(160px, 27vw, 290px); }
   .pola.photo .pic { aspect-ratio: 4 / 3; }
+  .pola.featured {
+    opacity: 1;
+    padding: 12px 12px 0;
+    box-shadow: 0 26px 50px -18px rgba(59, 29, 42, .65);
+  }
+  .pola.featured .cap { font-size: clamp(18px, 2.4vw, 26px); line-height: 2em; }
   .pola .cap {
     font-family: var(--f-hand);
     font-size: clamp(13px, 1.8vw, 19px);
@@ -502,7 +508,7 @@ const CONFIG = {
   // Ảnh lớp cho gallery nền. Bỏ ảnh vào thư mục photos/ cạnh file này rồi liệt kê ở đây.
   // Mỗi dòng là "đường dẫn" hoặc ["đường dẫn", "chú thích dưới ảnh"].
   photos: [
-    ["photos/lop-01.jpg", "Cả lớp 66D"],
+    ["photos/lop-01.jpg", "Hội con gái"],
     ["photos/lop-02.jpg", "Cả lớp 66D"],
     ["photos/lop-03.jpg", "Học quân sự"],
     ["photos/lop-04.jpg", "Học quân sự"],
@@ -522,6 +528,8 @@ const CONFIG = {
     ["photos/lop-18.jpg", "Selfie 66D"],
     ["photos/lop-19.jpg", "Liên hoan lớp"]
   ],
+  // 3 ảnh to đặt giữa màn đầu: [trái, giữa, phải]. Ghi đúng đường dẫn như trong photos ở trên.
+  featured: ["photos/lop-10.jpg", "photos/lop-02.jpg", "photos/lop-01.jpg"],
 
   // Câu hỏi về lớp. correct = vị trí đáp án đúng (0 = A, 1 = B, ...), "all" = ý nào cũng đúng.
   // flee = vị trí đáp án sẽ chạy trốn khi bấm. Câu cuối "Tên em là gì?" và bước up ảnh luôn được thêm tự động.
@@ -613,6 +621,58 @@ function buildCollage() {
     p.append(pic, capEl);
     box.appendChild(p);
   }
+  placeFeatured(box, w, innerHeight);
+}
+
+/* 3 ảnh nổi bật ở giữa màn đầu: hàng ngang trên máy tính, tam giác trên điện thoại */
+function placeFeatured(box, w, h) {
+  const picks = (CONFIG.featured || []).map(src => PHOTOS.findIndex(p => p[0] === src)).filter(i => i >= 0);
+  if (!picks.length) return;
+  const top = 70, bottom = h - 150, cy = (top + bottom) / 2;
+  const hOf = pw => pw * 0.75 + pw * 0.08 + 40;   // ảnh 4:3 + viền + chú thích
+  const order = picks.length === 3 ? [1, 0, 2] : picks.map((_, k) => k); // vẽ ảnh giữa sau cùng để nằm trên
+  let slots;
+  if (w >= 760) {
+    const cw = Math.min(w * 0.34, 440, (bottom - top) * 1.05), sw = Math.min(w * 0.25, 330);
+    const dx = cw / 2 + sw / 2 - Math.min(60, w * 0.04);
+    slots = [
+      { x: w / 2 - dx, y: cy + 16, pw: sw, rot: -7 },
+      { x: w / 2, y: cy - 6, pw: cw, rot: 2 },
+      { x: w / 2 + dx, y: cy + 22, pw: sw, rot: 6 }
+    ];
+  } else {
+    const cw = Math.min(w * 0.8, 360), sw = Math.min(w * 0.54, 250);
+    const ch = hOf(cw), sh = hOf(sw);
+    const total = ch + sh - 50, y0 = cy - total / 2;
+    slots = [
+      { x: w / 2 - sw * 0.42, y: y0 + ch - 50 + sh / 2, pw: sw, rot: -6 },
+      { x: w / 2, y: y0 + ch / 2, pw: cw, rot: 2 },
+      { x: w / 2 + sw * 0.42, y: y0 + ch - 36 + sh / 2, pw: sw, rot: 7 }
+    ];
+  }
+  if (picks.length !== 3) slots = [slots[1], slots[0], slots[2]];
+  order.forEach(k => {
+    const idx = picks[k], s = slots[k];
+    if (idx === undefined || !s) return;
+    const [src, label] = PHOTOS[idx];
+    const p = document.createElement("div");
+    p.className = "pola photo featured";
+    p.dataset.idx = idx;
+    p.style.width = s.pw + "px";
+    p.style.left = (s.x - s.pw / 2) + "px";
+    p.style.top = (s.y - hOf(s.pw) / 2) + "px";
+    p.style.transform = `rotate(${s.rot}deg)`;
+    p.style.zIndex = 20 + (k === 1 ? 2 : 0);
+    const pic = document.createElement("div");
+    pic.className = "pic";
+    const img = document.createElement("img");
+    img.src = src; img.alt = "";
+    pic.appendChild(img);
+    const capEl = document.createElement("div");
+    capEl.className = "cap"; capEl.textContent = label;
+    p.append(pic, capEl);
+    box.appendChild(p);
+  });
 }
 buildCollage();
 // chỉ xếp lại khi đổi chiều ngang (xoay máy), không xếp lại khi thanh địa chỉ co giãn lúc cuộn
