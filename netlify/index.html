@@ -400,6 +400,73 @@
   .share .btn.outline { background: transparent; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .5); }
   .share .tiny { color: rgba(255, 255, 255, .7); }
 
+  /* ---------- đập chuột ---------- */
+  .whack {
+    position: relative;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: clamp(6px, 2.5vw, 16px);
+    width: 100%; max-width: 420px;
+    padding: 14px 10px 8px;
+    background: radial-gradient(ellipse at 50% 0%, #bfe3a4, #8cc56b);
+    border-radius: 18px;
+    touch-action: manipulation; user-select: none; -webkit-user-select: none;
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><text x='2' y='32' font-size='30'>🔨</text></svg>") 10 10, pointer;
+  }
+  .hole { position: relative; aspect-ratio: 1; max-width: 100%; overflow: hidden; }
+  .hole::before {
+    content: ""; position: absolute; left: 6%; right: 6%; bottom: 6%; height: 28%;
+    background: #4a2f25; border-radius: 50%;
+    box-shadow: inset 0 8px 10px rgba(0, 0, 0, .45);
+  }
+  .mole {
+    position: absolute; left: 14%; width: 72%; bottom: 14%; aspect-ratio: 1;
+    border-radius: 50%; overflow: hidden;
+    border: 4px solid #fff; padding: 0;
+    background: var(--rose);
+    display: grid; place-items: center;
+    color: #fff; font: 900 clamp(18px, 6vw, 30px) var(--f-ui);
+    transform: translateY(125%);
+    transition: transform .2s cubic-bezier(.3, 1.5, .6, 1);
+    pointer-events: none;
+    cursor: inherit;
+  }
+  .mole img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .hole.up .mole { transform: translateY(0); pointer-events: auto; }
+  .hole.bonk .mole { animation: bonk .45s ease-out forwards; }
+  @keyframes bonk { 0% { transform: translateY(0) scale(1); } 30% { transform: translateY(8%) scale(1.15, .7); } 100% { transform: translateY(0) scale(1); } }
+  .mound {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 20%; z-index: 2;
+    background: #7a5140; border-radius: 50% 50% 10px 10px / 70% 70% 10px 10px;
+  }
+  .hammer {
+    position: absolute; z-index: 5; pointer-events: none;
+    font-size: 44px; line-height: 1;
+    transform-origin: 80% 80%;
+    animation: swing .35s ease-in forwards;
+  }
+  @keyframes swing { 0% { transform: rotate(-60deg); opacity: 1; } 60% { transform: rotate(20deg); opacity: 1; } 100% { transform: rotate(10deg); opacity: 0; } }
+
+  .wish-card {
+    width: 100%; max-width: 420px;
+    display: grid; justify-items: center; gap: 10px;
+    background: #fff;
+    background-image: repeating-linear-gradient(transparent 0 31px, var(--rose-soft) 31px 32px);
+    padding: 22px 20px 20px;
+    box-shadow: 0 10px 26px -12px rgba(59, 29, 42, .5);
+    transform: rotate(1deg);
+    animation: pop .45s ease-out;
+  }
+  .wish-face {
+    width: 96px; height: 96px; border-radius: 50%; overflow: hidden;
+    border: 4px solid var(--gold); background: var(--rose);
+    display: grid; place-items: center; color: #fff; font: 900 36px var(--f-ui);
+    margin-top: -60px; box-shadow: 0 8px 18px -8px rgba(59, 29, 42, .6);
+  }
+  .wish-face img { width: 100%; height: 100%; object-fit: cover; }
+  .wish-from { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .wish-from b { color: var(--rose); }
+  .wish-text { margin: 0; font: 23px/1.4 var(--f-hand); color: var(--ink); text-wrap: balance; }
+
   #fx { position: fixed; inset: 0; pointer-events: none; z-index: 60; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -502,6 +569,22 @@
       <button class="btn yes" id="spin" type="button">Quay</button>
     </section>
 
+    <!-- Giải đặc biệt: đập chuột nhận lời chúc -->
+    <section class="stage" id="s-whack" hidden>
+      <h2 class="title sm" id="whack-title" hidden></h2>
+      <p class="sub" id="whack-sub">Bạn nào ló lên thì đập nhanh nha.</p>
+      <div class="whack" id="whack"></div>
+      <div class="wish-card" id="wish-card" hidden>
+        <div class="wish-face" id="wish-face"></div>
+        <p class="wish-from">Lời chúc từ <b id="wish-name"></b></p>
+        <p class="wish-text" id="wish-text"></p>
+        <div class="choices">
+          <button class="btn ghost" id="whack-again" type="button">Đập bạn khác</button>
+          <button class="btn yes" id="whack-done" type="button">Nhận thiệp</button>
+        </div>
+      </div>
+    </section>
+
     <!-- Kết: postcard -->
     <section class="stage" id="s-final" hidden>
       <p class="eyebrow">Thiệp 20/10 của cậu</p>
@@ -584,13 +667,25 @@ const CONFIG = {
     spins: [
       { land: "1 tỷ đồng", title: "Trúng 1 tỷ đồng!", sub: "Thủ quỹ vừa báo quỹ lớp còn 37.000đ. Quay lại nha.", btn: "Quay lại" },
       { land: "iPhone 17", title: "Trúng iPhone 17!", sub: "Kho báo hết hàng rồi. Quay lần cuối, hứa đó.", btn: "Quay lần cuối" },
-      { land: "Lời chúc", title: "Giải đặc biệt: Lời chúc 20/10", sub: "Giải này thì lớp có thật.", btn: "Nhận thiệp" }
+      { land: "Lời chúc", title: "Giải đặc biệt: Lời chúc 20/10", sub: "Giải này thì lớp có thật.", btn: "Nhận lời chúc" }
     ]
   },
 
   // Lời chúc in trên thiệp. {ten} sẽ được thay bằng tên cậu ấy nhập.
   wish: "Chúc {ten} 20/10 luôn xinh, luôn vui, deadline nào cũng kịp và lúc nào cũng có người chiều.",
-  signature: "Từ các bạn nam 66D"
+  signature: "Từ các bạn nam 66D",
+
+  // Trò đập chuột (sau vòng quay): mỗi "chuột" là một bạn nam. Đập trúng ai thì hiện lời chúc của người đó.
+  // photo = ảnh mặt (vuông là đẹp nhất), để "" thì hiện chữ cái đầu tên.
+  // {ten} trong lời chúc sẽ được thay bằng tên bạn nữ. Để danh sách trống thì bỏ qua trò này.
+  boys: [
+    { name: "Bạn nam 1", photo: "", wish: "Chúc {ten} 20/10 thật xinh, thật vui, và qua môn nào cũng điểm A nha!" },
+    { name: "Bạn nam 2", photo: "", wish: "Chúc {ten} luôn cười tươi như ảnh lớp đầu năm. Cảm ơn vì đã làm 66D vui hơn." },
+    { name: "Bạn nam 3", photo: "", wish: "Chúc {ten} ngủ đủ giấc, deadline không dí, trà sữa không hết." },
+    { name: "Bạn nam 4", photo: "", wish: "20/10 vui vẻ nha {ten}! Có gì khó cứ gọi tụi mình." },
+    { name: "Bạn nam 5", photo: "", wish: "Chúc {ten} một năm học thật nhẹ nhàng và nhiều kỉ niệm đẹp với 66D." },
+    { name: "Bạn nam 6", photo: "", wish: "Chúc {ten} luôn xinh, luôn vui, và luôn là chính mình." }
+  ]
 };
 /* =========================================================== */
 
@@ -1093,9 +1188,9 @@ PRIZES.forEach((p, i) => {
 let rot = 0, spinning = false;
 $("spin").addEventListener("click", () => {
   if (spinning) return;
-  if (state.spins >= SPINS.length) { goFinal(); return; }
+  if (state.spins >= SPINS.length) { BOYS.length ? goWhack() : goFinal(); return; }
   spinning = true;
-  preparePostcard();
+  preparePostcard();   // in sẵn thiệp trong lúc quay
   const plan = SPINS[state.spins];
   let idx = PRIZES.indexOf(plan.land);
   if (idx < 0) idx = Math.floor(Math.random() * PRIZES.length);
@@ -1120,6 +1215,137 @@ wheel.addEventListener("transitionend", e => {
   if (state.spins < SPINS.length) shakeCard(); else burst(50);
   spinning = false;
 });
+
+/* ================== GIẢI ĐẶC BIỆT: ĐẬP CHUỘT ================== */
+const BOYS = (CONFIG.boys || []).filter(b => b && b.name);
+const FACE_COLORS = ["#d93f72", "#4f86c6", "#2f9a5c", "#ef7d3c", "#8a5cd1", "#7a3a5c"];
+const HOLES = 9;
+const MISS_MSG = ["Hụt rồi!", "Chậm một nhịp rồi.", "Bạn ấy trốn nhanh ghê.", "Nhắm kỹ rồi đập nha."];
+let whackTimer = 0, whackOn = false, misses = 0;
+const holeState = [];   // mỗi lỗ: { boy, timer }
+const hitBoys = new Set();
+function faceNode(boy, i) {
+  if (boy.photo) {
+    const img = document.createElement("img");
+    img.src = boy.photo; img.alt = ""; img.draggable = false;
+    return img;
+  }
+  const s = document.createElement("span");
+  s.textContent = boy.name.trim().split(/\s+/).pop().charAt(0).toUpperCase();
+  return s;
+}
+function buildWhack() {
+  const box = $("whack");
+  box.innerHTML = "";
+  for (let i = 0; i < HOLES; i++) {
+    const h = document.createElement("div");
+    h.className = "hole";
+    const m = document.createElement("button");
+    m.type = "button"; m.className = "mole"; m.tabIndex = -1;
+    const mound = document.createElement("span");
+    mound.className = "mound";
+    h.append(m, mound);
+    box.appendChild(h);
+    holeState[i] = { boy: null, timer: 0 };
+    m.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); hit(i, e); });
+    m.addEventListener("click", e => { if (e.detail === 0) hit(i, e); }); // bàn phím
+  }
+  box.addEventListener("pointerdown", e => {
+    if (!whackOn || e.target.closest(".hole.up")) return;
+    swingAt(e);
+    $("whack-sub").textContent = MISS_MSG[misses++ % MISS_MSG.length];
+  });
+}
+function swingAt(e) {
+  const box = $("whack"), r = box.getBoundingClientRect();
+  const hm = document.createElement("span");
+  hm.className = "hammer"; hm.textContent = "🔨";
+  hm.style.left = (e.clientX - r.left - 34) + "px";
+  hm.style.top = (e.clientY - r.top - 40) + "px";
+  box.appendChild(hm);
+  setTimeout(() => hm.remove(), 400);
+}
+function popUp() {
+  if (!whackOn) return;
+  const holes = [...$("whack").children].filter(n => n.classList.contains("hole"));
+  const upCount = holeState.filter(s => s.boy).length;
+  if (upCount < 3) {
+    const free = holeState.map((s, i) => s.boy ? -1 : i).filter(i => i >= 0);
+    const busy = new Set(holeState.map(s => s.boy).filter(Boolean));
+    let pool = BOYS.filter(b => !busy.has(b) && !hitBoys.has(b));
+    if (!pool.length) pool = BOYS.filter(b => !busy.has(b));
+    if (free.length && pool.length) {
+      const i = free[(Math.random() * free.length) | 0];
+      const boy = pool[(Math.random() * pool.length) | 0];
+      const hole = holes[i], mole = hole.querySelector(".mole");
+      mole.replaceChildren(faceNode(boy, i));
+      mole.style.background = FACE_COLORS[BOYS.indexOf(boy) % FACE_COLORS.length];
+      mole.setAttribute("aria-label", "Đập " + boy.name);
+      holeState[i].boy = boy;
+      hole.classList.remove("bonk");
+      hole.classList.add("up");
+      const stay = (reduced ? 2200 : 1300) + Math.random() * 700;
+      holeState[i].timer = setTimeout(() => hideHole(i), stay);
+    }
+  }
+  whackTimer = setTimeout(popUp, 380 + Math.random() * 420);
+}
+function hideHole(i) {
+  const hole = $("whack").children[i];
+  clearTimeout(holeState[i].timer);
+  holeState[i].boy = null;
+  if (hole) hole.classList.remove("up", "bonk");
+}
+function startWhack() {
+  whackOn = true;
+  $("whack").hidden = false;
+  $("wish-card").hidden = true;
+  $("whack-title").hidden = true;
+  $("whack-sub").textContent = "Bạn nào ló lên thì đập nhanh nha.";
+  clearTimeout(whackTimer);
+  popUp();
+}
+function stopWhack() {
+  whackOn = false;
+  clearTimeout(whackTimer);
+  holeState.forEach((_, i) => hideHole(i));
+}
+function hit(i, e) {
+  const boy = holeState[i].boy;
+  if (!whackOn || !boy) return;
+  const hole = $("whack").children[i];
+  if (e && e.clientX) swingAt(e);
+  hole.classList.add("bonk");
+  sparkle(e && e.clientX ? e.clientX : innerWidth / 2, e && e.clientY ? e.clientY : innerHeight / 2, 16, 120);
+  whackOn = false;
+  clearTimeout(whackTimer);
+  clearTimeout(holeState[i].timer);
+  hitBoys.add(boy);
+  setTimeout(() => showWish(boy), 550);
+}
+function showWish(boy) {
+  stopWhack();
+  $("whack").hidden = true;
+  const wish = boy.wish.replace(/\{ten\}/g, state.name || "cậu");
+  $("whack-title").textContent = "Trúng rồi!";
+  $("whack-title").hidden = false;
+  $("whack-sub").textContent = `${boy.name} có lời muốn nói với ${state.name || "cậu"} nè`;
+  const face = $("wish-face");
+  face.replaceChildren(faceNode(boy));
+  face.style.background = FACE_COLORS[BOYS.indexOf(boy) % FACE_COLORS.length];
+  $("wish-name").textContent = boy.name;
+  $("wish-text").textContent = `“${wish}”`;
+  $("wish-card").hidden = false;
+  $("whack-again").hidden = hitBoys.size >= BOYS.length;
+  burst(50);
+}
+function goWhack() {
+  show("s-whack");
+  if (!$("whack").children.length) buildWhack();
+  startWhack();
+}
+$("whack-again").addEventListener("click", startWhack);
+$("whack-done").addEventListener("click", () => { stopWhack(); goFinal(); });
 
 /* ================== KẾT: POSTCARD 16:9 ================== */
 let cardBlob = null, cardReady = null;
@@ -1232,25 +1458,18 @@ async function drawPostcard() {
   do { g.font = `900 ${fs}px ${FW}`; fs -= 4; } while (g.measureText(name).width > MAXW && fs > 60);
   g.fillStyle = "#fff"; g.fillText(name, X, 400);
 
-  const stats = [
-    [String(state.boxes || 3), "hộp quà đã mở", LIME],
-    [`${state.firstTry}/${MCQ_COUNT}`, "câu về lớp đúng ngay lần đầu", PINK],
-    [String(SPINS.length), "lần quay để trúng một lời chúc", ORANGE]
-  ];
-  stats.forEach(([num, label, col], i) => {
-    const sx = X + i * 255;
-    g.fillStyle = col; g.font = `900 96px ${FW}`;
-    g.fillText(num, sx, 540, 235);
-    g.fillStyle = CREAM; g.font = `400 25px ${FW}`;
-    wrapLines(g, label, 220).slice(0, 2).forEach((ln, k) => g.fillText(ln, sx, 584 + k * 33));
-  });
-
-  g.fillStyle = "#fff"; g.font = `800 33px ${FW}`;
+  // lời chúc gửi bạn này (CONFIG.wish), tự thu nhỏ chữ cho vừa tối đa 5 dòng
+  g.fillStyle = PINK; g.font = `900 120px ${FW}`;
+  g.fillText("“", X - 6, 520);
   const wish = CONFIG.wish.replace(/\{ten\}/g, name);
-  wrapLines(g, wish, MAXW).slice(0, 3).forEach((ln, k) => g.fillText(ln, X, 712 + k * 46));
+  let wfs = 44, lines;
+  do { g.font = `800 ${wfs}px ${FW}`; lines = wrapLines(g, wish, MAXW); wfs -= 2; } while (lines.length > 5 && wfs > 24);
+  g.fillStyle = CREAM;
+  const lh = Math.round((wfs + 2) * 1.4);
+  lines.slice(0, 5).forEach((ln, k) => g.fillText(ln, X, 562 + k * lh));
 
   g.font = `800 28px ${FW}`;
-  g.fillStyle = PINK; g.fillText(CONFIG.signature, X, 850);
+  g.fillStyle = PINK; g.fillText(CONFIG.signature, X, 850, 520);
   g.textAlign = "right"; g.fillStyle = LIME; g.fillText("@" + IG, 1520, 850);
   return c;
 }
