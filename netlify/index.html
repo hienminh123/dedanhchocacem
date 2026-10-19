@@ -511,7 +511,7 @@
 
   /* ---------- postcard ---------- */
   .postcard {
-    width: 100%; aspect-ratio: 16 / 9; max-width: 100%;
+    width: min(400px, 100%); aspect-ratio: 9 / 16; max-width: 100%;   /* thiệp dọc, vừa khung story */
     border-radius: 14px; overflow: hidden;
     background: var(--night);
     box-shadow: 0 24px 50px -20px rgba(29, 15, 43, .7);
@@ -743,7 +743,7 @@
       <p class="eyebrow">Thiệp 20/10 của cậu</p>
       <div class="postcard" id="postcard">Đang in thiệp...</div>
       <div class="share">
-        <p>Chia sẻ chiếc thiệp này lên Instagram và tag <span class="handle" id="ig-handle">@lop66d</span> để nhận quà trực tiếp từ các bạn nam nhé!</p>
+        <p>Chia sẻ chiếc thiệp này lên Instagram và tag <span class="handle" id="ig-handle">@66d_qtkd.neu</span> để nhận quà trực tiếp từ các bạn nam nhé!</p>
         <div class="row">
           <button class="btn lime" id="save" type="button">Lưu ảnh thiệp</button>
           <button class="btn outline" id="copy-ig" type="button">Copy tên IG lớp</button>
@@ -764,7 +764,7 @@ const CONFIG = {
   // Link web app Apps Script (dạng https://script.google.com/macros/s/.../exec) để gom câu trả lời vào Google Sheet.
   // Để trống "" thì không gửi gì cả.
   sheetUrl: "https://script.google.com/macros/s/AKfycbwI7WFHIv7DJcG3ynwH3HfNHpdBjbe-0FPEocplz1fEdzAv_WlPAoDZkqXOcWBTDsCWGw/exec",
-  instagram: "lop66d",                 // tên IG của lớp, không cần @
+  instagram: "66d_qtkd.neu",                 // tên IG của lớp, không cần @
   openTitle: "Để dành cho (các) ems 66D",    // tiêu đề màn đầu (link có ?ten=Lan sẽ thành "Để dành cho cậu Lan")
 
   // Ảnh lớp cho gallery nền. Bỏ ảnh vào thư mục photos/ cạnh file này rồi liệt kê ở đây.
@@ -1188,7 +1188,7 @@ function show(id) {
   document.querySelectorAll("#card > .stage").forEach(s => s.hidden = s.id !== id);
   document.body.classList.toggle("focus", id !== "s-ask");
   if (id !== "s-ask") $("intro").hidden = true;
-  $("card").classList.toggle("wide", id === "s-final");
+  $("card").classList.remove("wide");   // thiệp dọc nên giữ tờ thiệp hẹp như các màn khác
   window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
 }
 function shakeCard() {
@@ -1788,9 +1788,9 @@ function wrapLines(g, text, maxW) {
   return lines;
 }
 async function drawPostcard() {
-  // Thiệp 16:9 kiểu "Chứng nhận xinh đẹp": nền caro hồng, tờ giấy kem viền nét đứt, nơ to,
-  // khung ảnh bên trái, nội dung chứng nhận bên phải, con dấu 66D.
-  const W = 1600, H = 900;
+  // Thiệp dọc 9:16 (1080 × 1920, vừa khung story) kiểu "Chứng nhận xinh đẹp":
+  // nền caro hồng, tờ giấy kem viền nét đứt, nơ to, ảnh ở giữa, nội dung chứng nhận bên dưới, con dấu 66D.
+  const W = 1080, H = 1920;
   const c = document.createElement("canvas"); c.width = W; c.height = H;
   const g = c.getContext("2d");
   const FB = '"Baloo 2", "Nunito", "Segoe UI", sans-serif';
@@ -1825,6 +1825,15 @@ async function drawPostcard() {
     g.bezierCurveTo(s * .45, -s * 1.05, s * 1.1, -s * .35, 0, s * .35);
     g.fill(); g.restore();
   };
+  // chữ có viền trắng + viền hồng đậm, kiểu nhãn dán
+  const bubble = (text, x, y, size, maxW) => {
+    let s = size;
+    do { g.font = `800 ${s}px ${FB}`; s -= 4; } while (g.measureText(text).width > maxW && s > 40);
+    g.lineJoin = "round";
+    g.lineWidth = 20; g.strokeStyle = "#fff"; g.strokeText(text, x, y);
+    g.lineWidth = 6; g.strokeStyle = PINK_D; g.strokeText(text, x, y);
+    g.fillStyle = PINK; g.fillText(text, x, y);
+  };
 
   // nền caro hồng
   g.fillStyle = "#f9b9cb"; g.fillRect(0, 0, W, H);
@@ -1834,19 +1843,20 @@ async function drawPostcard() {
 
   // tờ giấy chứng nhận
   g.save();
-  g.shadowColor = "rgba(160,40,80,.25)"; g.shadowBlur = 30; g.shadowOffsetY = 10;
-  rr(56, 58, W - 112, H - 130, 34); g.fillStyle = CREAM; g.fill();
+  g.shadowColor = "rgba(160,40,80,.25)"; g.shadowBlur = 36; g.shadowOffsetY = 12;
+  rr(48, 60, W - 96, H - 108, 40); g.fillStyle = CREAM; g.fill();
   g.restore();
-  g.setLineDash([16, 12]); g.lineWidth = 5; g.strokeStyle = "#f59ab5";
-  rr(78, 80, W - 156, H - 174, 24); g.stroke();
+  g.setLineDash([18, 13]); g.lineWidth = 6; g.strokeStyle = "#f59ab5";
+  rr(72, 84, W - 144, H - 156, 28); g.stroke();
   g.setLineDash([]);
 
   // hoạ tiết sao, tim
-  star(128, 140, 26, GOLD, .2); star(1470, 150, 22, GOLD, -.3); star(1500, 690, 18, "#ffb3c8", .1);
-  star(140, 700, 16, "#ffb3c8", .5); heart(1440, 250, 22, "#ff8fb0"); heart(170, 250, 18, "#ff8fb0");
+  star(140, 170, 30, GOLD, .2); star(940, 190, 26, GOLD, -.3); star(150, 1210, 20, "#ffb3c8", .5);
+  star(950, 1500, 22, "#ffb3c8", .1); heart(930, 560, 26, "#ff8fb0"); heart(150, 560, 22, "#ff8fb0");
+  star(130, 1690, 16, GOLD, .4);
 
   // nơ to ở giữa mép trên
-  g.save(); g.translate(W / 2, 74);
+  g.save(); g.translate(W / 2, 92); g.scale(1.25, 1.25);
   g.fillStyle = PINK; g.strokeStyle = PINK_D; g.lineWidth = 5;
   [-1, 1].forEach(s => {
     g.beginPath(); g.moveTo(0, 0);
@@ -1860,27 +1870,26 @@ async function drawPostcard() {
   g.fillStyle = "rgba(255,255,255,.5)"; g.beginPath(); g.ellipse(-6, -7, 8, 5, -.5, 0, Math.PI * 2); g.fill();
   g.restore();
 
-  // tiêu đề
+  // tiêu đề 2 dòng: "CHỨNG NHẬN" / "XINH ĐẸP" (tự tách ở chữ "NHẬN" nếu tiêu đề khác thì chia đôi theo từ)
   g.textAlign = "center"; g.textBaseline = "alphabetic";
-  let ts = 92;
-  const title = fill(CT.title || "CHỨNG NHẬN XINH ĐẸP");
-  do { g.font = `800 ${ts}px ${FB}`; ts -= 4; } while (g.measureText(title).width > 1100 && ts > 50);
-  g.lineJoin = "round";
-  g.lineWidth = 18; g.strokeStyle = "#fff"; g.strokeText(title, W / 2, 232);
-  g.lineWidth = 5; g.strokeStyle = PINK_D; g.strokeText(title, W / 2, 232);
-  g.fillStyle = PINK; g.fillText(title, W / 2, 232);
-  g.font = `30px ${FH}`; g.fillStyle = "#c0577f";
-  g.fillText(fill(CT.issuer || "Được cấp bởi các bạn nam {lop} nhân ngày Phụ nữ Việt Nam 20/10/2026"), W / 2, 284, 1300);
+  const title = fill(CT.title || "CHỨNG NHẬN XINH ĐẸP").trim();
+  const words = title.split(/\s+/);
+  const cut = Math.ceil(words.length / 2);
+  bubble(words.slice(0, cut).join(" "), W / 2, 330, 118, 860);
+  bubble(words.slice(cut).join(" "), W / 2, 470, 150, 860);
+  g.font = `34px ${FH}`; g.fillStyle = "#c0577f";
+  wrapLines(g, fill(CT.issuer || "Được cấp bởi các bạn nam {lop} nhân ngày Phụ nữ Việt Nam 20/10/2026"), 820)
+    .slice(0, 2).forEach((ln, k) => g.fillText(ln, W / 2, 540 + k * 44));
 
-  // khung ảnh bên trái (có băng keo)
-  const PX = 150, PY = 330, PW = 380, PH = 430;
+  // khung ảnh ở giữa (có băng keo)
+  const PW = 580, PH = 640, PCX = W / 2, PCY = 630 + PH / 2;
   g.save();
-  g.translate(PX + PW / 2, PY + PH / 2); g.rotate(-3 * Math.PI / 180);
-  g.shadowColor = "rgba(120,30,60,.3)"; g.shadowBlur = 24; g.shadowOffsetY = 10;
+  g.translate(PCX, PCY); g.rotate(-2.5 * Math.PI / 180);
+  g.shadowColor = "rgba(120,30,60,.3)"; g.shadowBlur = 28; g.shadowOffsetY = 12;
   g.fillStyle = "#fff"; g.fillRect(-PW / 2, -PH / 2, PW, PH);
   g.shadowColor = "transparent";
-  const ix = -PW / 2 + 16, iy = -PH / 2 + 16, iw = PW - 32, ih = PH - 32;
-  g.save(); rr(ix, iy, iw, ih, 10); g.clip();
+  const ix = -PW / 2 + 20, iy = -PH / 2 + 20, iw = PW - 40, ih = PH - 40;
+  g.save(); rr(ix, iy, iw, ih, 12); g.clip();
   if (state.photo) {
     const im = state.photo, s = Math.max(iw / im.naturalWidth, ih / im.naturalHeight);
     g.drawImage(im, ix + (iw - im.naturalWidth * s) / 2, iy + (ih - im.naturalHeight * s) / 2, im.naturalWidth * s, im.naturalHeight * s);
@@ -1888,57 +1897,55 @@ async function drawPostcard() {
     const grd = g.createLinearGradient(ix, iy, ix + iw, iy + ih);
     grd.addColorStop(0, "#ffc2d4"); grd.addColorStop(1, "#ff8fb0");
     g.fillStyle = grd; g.fillRect(ix, iy, iw, ih);
-    g.fillStyle = "#fff"; g.font = `800 200px ${FB}`; g.textAlign = "center"; g.textBaseline = "middle";
-    g.fillText(name.charAt(0).toUpperCase(), 0, 10);
+    g.fillStyle = "#fff"; g.font = `800 300px ${FB}`; g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(name.charAt(0).toUpperCase(), 0, 16);
   }
   g.restore();
-  g.fillStyle = "rgba(255,207,77,.75)"; g.rotate(4 * Math.PI / 180); g.fillRect(-70, -PH / 2 - 22, 140, 40);
+  g.fillStyle = "rgba(255,207,77,.78)"; g.rotate(4 * Math.PI / 180); g.fillRect(-90, -PH / 2 - 28, 180, 52);
   g.restore();
-  heart(PX + PW - 6, PY + PH - 10, 30, PINK);
+  heart(PCX - PW / 2 + 10, PCY + PH / 2 - 20, 38, PINK);
 
-  // nội dung chứng nhận bên phải, viết trên dòng kẻ
-  const X = 610, MAXW = 860;
-  g.textAlign = "left"; g.textBaseline = "alphabetic";
-  g.strokeStyle = "#f7c9d6"; g.lineWidth = 2; g.setLineDash([6, 8]);
-  for (let y = 412; y <= 720; y += 52) { g.beginPath(); g.moveTo(X, y + 10); g.lineTo(X + MAXW, y + 10); g.stroke(); }
-  g.setLineDash([]);
-  g.fillStyle = INK; g.font = `34px ${FH}`;
-  g.fillText(fill(CT.intro || "Trân trọng chứng nhận:"), X, 380);
-  let ns = 66;
-  do { g.font = `${ns}px ${FS}`; ns -= 3; } while (g.measureText(name).width > MAXW - 40 && ns > 34);
-  g.fillStyle = PINK; g.fillText(name, X + 20, 464);
+  // con dấu "đã duyệt" đè lên góc ảnh
+  g.save(); g.translate(PCX + PW / 2 - 30, PCY + PH / 2 - 40); g.rotate(-14 * Math.PI / 180); g.globalAlpha = .9;
+  g.fillStyle = "rgba(255,250,242,.85)"; g.beginPath(); g.arc(0, 0, 92, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = "#ff3d7a"; g.fillStyle = "#ff3d7a"; g.lineWidth = 7;
+  g.beginPath(); g.arc(0, 0, 88, 0, Math.PI * 2); g.stroke();
+  g.lineWidth = 3; g.setLineDash([6, 6]); g.beginPath(); g.arc(0, 0, 72, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = `800 42px ${FB}`; g.fillText(CONFIG.className, 0, -20);
+  g.font = `800 20px ${FB}`; g.fillText(CT.stamp || "XINH ĐÃ DUYỆT", 0, 18, 118);
+  star(0, 50, 11, "#ff3d7a");
+  g.restore();
+
+  // nội dung chứng nhận bên dưới ảnh, căn giữa trên dòng kẻ
+  const MAXW = 860, top = 1370;
+  g.textAlign = "center"; g.textBaseline = "alphabetic";
+  g.fillStyle = INK; g.font = `40px ${FH}`;
+  g.fillText(fill(CT.intro || "Trân trọng chứng nhận:"), W / 2, top);
+  let ns = 100;
+  do { g.font = `${ns}px ${FS}`; ns -= 4; } while (g.measureText(name).width > MAXW && ns > 44);
+  g.fillStyle = PINK; g.fillText(name, W / 2, top + 108);
   const body = fill(CT.body || "Là một phần xinh đẹp và không thể thiếu của {lop}. Cảm ơn cậu vì đã luôn làm lớp mình vui hơn mỗi ngày. Chúc cậu 20/10 luôn xinh, luôn vui và được yêu thương thật nhiều!");
-  let bs = 34, lines;
-  do { g.font = `${bs}px ${FH}`; lines = wrapLines(g, body, MAXW); bs -= 2; } while (lines.length > 5 && bs > 24);
+  let bs = 38, lines;
+  do { g.font = `${bs}px ${FH}`; lines = wrapLines(g, body, MAXW); bs -= 2; } while (lines.length > 4 && bs > 26);
+  const lh = Math.round((bs + 2) * 1.4);
+  g.strokeStyle = "#f7c9d6"; g.lineWidth = 2; g.setLineDash([6, 8]);
+  lines.slice(0, 4).forEach((ln, k) => {
+    const y = top + 180 + k * lh;
+    g.beginPath(); g.moveTo(W / 2 - MAXW / 2, y + 12); g.lineTo(W / 2 + MAXW / 2, y + 12); g.stroke();
+  });
+  g.setLineDash([]);
   g.fillStyle = INK;
-  lines.slice(0, 5).forEach((ln, k) => g.fillText(ln, X, 516 + k * 52));
+  lines.slice(0, 4).forEach((ln, k) => g.fillText(ln, W / 2, top + 180 + k * lh));
 
-  // ngày cấp + ký tên
-  g.font = `28px ${FH}`; g.fillStyle = "#b0607f";
-  g.fillText("Ngày cấp: 20/10/2026", X, 790);
+  // ngày cấp + ký tên ở đáy
+  const by = H - 130;
+  g.textAlign = "left"; g.font = `32px ${FH}`; g.fillStyle = "#b0607f";
+  g.fillText("Ngày cấp: 20/10/2026", 120, by);
   g.textAlign = "right";
-  g.fillText("Ký tên", 1330, 762);
-  g.font = `36px ${FS}`; g.fillStyle = PINK_D;
-  g.fillText(fill(CT.sign || "Các bạn nam {lop}"), 1330, 808, 420);
-
-  // con dấu "đã duyệt"
-  g.save(); g.translate(1430, 690); g.rotate(-14 * Math.PI / 180); g.globalAlpha = .85;
-  g.strokeStyle = "#ff3d7a"; g.fillStyle = "#ff3d7a"; g.lineWidth = 6;
-  g.beginPath(); g.arc(0, 0, 74, 0, Math.PI * 2); g.stroke();
-  g.lineWidth = 2.5; g.setLineDash([5, 5]); g.beginPath(); g.arc(0, 0, 60, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
-  g.textAlign = "center"; g.textBaseline = "middle";
-  g.font = `800 34px ${FB}`; g.fillText(CONFIG.className, 0, -18);
-  g.font = `800 17px ${FB}`; g.fillText(CT.stamp || "XINH ĐÃ DUYỆT", 0, 16, 96);
-  star(0, 44, 9, "#ff3d7a");
-  g.restore();
-
-  // tag IG ở mép dưới
-  g.textAlign = "center"; g.textBaseline = "middle";
-  g.font = `800 28px ${FB}`;
-  const tag = `Tag @${IG} để nhận quà nha 💝`;
-  const tw = g.measureText(tag).width + 56;
-  rr(W / 2 - tw / 2, H - 58, tw, 44, 22); g.fillStyle = "#fff"; g.fill();
-  g.fillStyle = PINK_D; g.fillText(tag, W / 2, H - 35);
+  g.fillText("Ký tên", 960, by - 40);
+  g.font = `42px ${FS}`; g.fillStyle = PINK_D;
+  g.fillText(fill(CT.sign || "Các bạn nam {lop}"), 960, by + 10, 520);
   return c;
 }
 
