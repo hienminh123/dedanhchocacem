@@ -316,6 +316,17 @@
     border: 2px solid var(--rose-soft); border-radius: 12px; background: #fff;
   }
   .name-form input:focus { outline: none; border-color: var(--rose); }
+  .free { display: grid; gap: 12px; width: 100%; }
+  .free input, .free textarea {
+    width: 100%; min-width: 0;
+    font: 700 18px/1.4 var(--f-ui); color: var(--ink);
+    padding: 12px 14px;
+    border: 2px solid var(--rose-soft); border-radius: 12px; background: #fff;
+  }
+  .free textarea { min-height: 110px; resize: vertical; font-weight: 600; font-size: 17px; }
+  .free input:focus, .free textarea:focus { outline: none; border-color: var(--rose); }
+  .free-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .ans.write { border-style: dashed; color: var(--rose); }
 
   .drop {
     width: min(220px, 100%); aspect-ratio: 4 / 5;
@@ -446,21 +457,32 @@
 
     <!-- Vòng 2: câu hỏi về lớp + tên + ảnh -->
     <section class="stage" id="s-quiz" hidden>
-      <p class="eyebrow">Thử thách 2/3 · Em hiểu 66D đến đâu</p>
+      <p class="eyebrow">Thử thách 2/3 · Cậu hiểu 66D đến đâu</p>
       <p class="score" id="quiz-count">Câu 1</p>
       <p class="quiz-q" id="quiz-q"></p>
       <div class="answers" id="quiz-a"></div>
 
+      <form class="free" id="quiz-free" hidden>
+        <label class="visually-hidden" for="free-short">Câu trả lời của cậu</label>
+        <input id="free-short" name="free-short" type="text" maxlength="60" autocomplete="off">
+        <label class="visually-hidden" for="free-long">Câu trả lời của cậu</label>
+        <textarea id="free-long" name="free-long" maxlength="600" hidden></textarea>
+        <div class="free-row">
+          <button class="btn yes" type="submit">Gửi</button>
+          <button class="btn must" id="free-skip" type="button" hidden>Mình yêu các bạn</button>
+        </div>
+      </form>
+
       <form class="name-form" id="name-form" hidden>
-        <label class="visually-hidden" for="name-input">Tên của em</label>
-        <input id="name-input" name="name" type="text" maxlength="24" autocomplete="given-name" placeholder="Tên em là...">
+        <label class="visually-hidden" for="name-input">Tên của cậu</label>
+        <input id="name-input" name="name" type="text" maxlength="24" autocomplete="given-name" placeholder="Tên cậu là...">
         <button class="btn yes" type="submit">Xong</button>
       </form>
 
       <div class="stage" id="photo-step" hidden>
         <label class="drop" id="drop" for="photo-input">
           <span id="drop-text"><span class="plus">+</span>Bấm để chọn ảnh<br>(hoặc kéo ảnh vào đây)</span>
-          <img id="photo-preview" alt="Ảnh em vừa chọn" hidden>
+          <img id="photo-preview" alt="Ảnh cậu vừa chọn" hidden>
         </label>
         <input class="visually-hidden" type="file" id="photo-input" accept="image/*">
         <button class="btn yes" id="photo-next" type="button" disabled>Nhận quà thôi</button>
@@ -468,6 +490,7 @@
       </div>
 
       <p class="sub" id="quiz-sub"></p>
+      <p class="tiny" id="quiz-note" hidden>Câu trả lời và tên của cậu sẽ được gửi cho các bạn nam 66D đọc nha. Ảnh thì không gửi đi đâu.</p>
     </section>
 
     <!-- Vòng 3: vòng quay -->
@@ -481,7 +504,7 @@
 
     <!-- Kết: postcard -->
     <section class="stage" id="s-final" hidden>
-      <p class="eyebrow">Thiệp 20/10 của em</p>
+      <p class="eyebrow">Thiệp 20/10 của cậu</p>
       <div class="postcard" id="postcard">Đang in thiệp...</div>
       <div class="share">
         <p>Chia sẻ chiếc thiệp này lên Instagram và tag <span class="handle" id="ig-handle">@lop66d</span> để nhận quà trực tiếp từ các bạn nam nhé!</p>
@@ -502,6 +525,9 @@
 /* ======================== SỬA Ở ĐÂY ======================== */
 const CONFIG = {
   className: "66D",
+  // Link web app Apps Script (dạng https://script.google.com/macros/s/.../exec) để gom câu trả lời vào Google Sheet.
+  // Để trống "" thì không gửi gì cả.
+  sheetUrl: "https://script.google.com/macros/s/AKfycbwI7WFHIv7DJcG3ynwH3HfNHpdBjbe-0FPEocplz1fEdzAv_WlPAoDZkqXOcWBTDsCWGw/exec",
   instagram: "lop66d",                 // tên IG của lớp, không cần @
   openTitle: "Dành cho các em 66D",    // tiêu đề màn đầu (link có ?ten=Lan sẽ thành "Dành cho em Lan")
 
@@ -531,14 +557,25 @@ const CONFIG = {
   // 3 ảnh to đặt giữa màn đầu: [trái, giữa, phải]. Ghi đúng đường dẫn như trong photos ở trên.
   featured: ["photos/lop-10.jpg", "photos/lop-02.jpg", "photos/lop-11.jpg"],
 
-  // Câu hỏi về lớp. correct = vị trí đáp án đúng (0 = A, 1 = B, ...), "all" = ý nào cũng đúng.
-  // flee = vị trí đáp án sẽ chạy trốn khi bấm. Câu cuối "Tên em là gì?" và bước up ảnh luôn được thêm tự động.
+  // Câu hỏi về lớp. Câu "Tên cậu là gì?" và bước gửi ảnh luôn được thêm tự động ở cuối.
+  // Trắc nghiệm: a = các đáp án, correct = vị trí đáp án đúng (0 = A, 1 = B, ...) hoặc "all" = ý nào cũng đúng.
+  //   write = thêm một nút cho tự điền ({tra_loi} = chữ vừa điền). flee = vị trí đáp án sẽ chạy trốn.
+  // Trả lời ngắn: type: "text" (long: true = ô viết dài). skip = nút bỏ qua, troll theo trolls rồi mới cho qua.
+  // key = tên cột gửi về Google Sheet (xinh_nhat, dep_trai_nhat, ki_niem).
   quiz: [
-    { q: "66D có tất cả bao nhiêu thành viên?", a: ["42", "45", "48", "51"], correct: 1 },
-    { q: "Lớp trưởng 66D là ai?", a: ["Bạn A", "Bạn B", "Bạn C", "Bạn D"], correct: 0 },
-    { q: "Môn nào khiến cả lớp \"khóc\" nhiều nhất?", a: ["Kinh tế lượng", "Xác suất thống kê", "Triết học", "Toán cao cấp"], correct: 0 },
-    { q: "Ai là người xinh nhất 66D?", a: ["Em", "Vẫn là em", "Không ai khác ngoài em", "Tất cả các đáp án trên"], correct: "all" },
-    { q: "Con trai 66D có dễ thương không?", a: ["Có", "Rất có", "Cực kỳ có", "Không"], correct: "all", flee: 3 }
+    { q: "Lớp 66D có bao nhiêu bạn nữ?", a: ["24", "26", "28", "30"], correct: 2 },
+    { q: "Chúng mình đã đi qua bao nhiêu kì học cùng nhau?", a: ["4", "5", "6", "7"], correct: 2 },
+    { key: "xinh_nhat", q: "Ai xinh nhất 66D?", a: ["Cậu", "Vẫn là cậu", "Chắc chắn là cậu"], correct: "all",
+      write: { label: "Tự điền tên", placeholder: "Người xinh nhất 66D là...", ok: "Ghi nhận: {tra_loi}. Nhưng với chúng mình thì cậu vẫn xinh nhất." } },
+    { key: "dep_trai_nhat", q: "Ai đẹp trai nhất 66D?", type: "text", placeholder: "Tên bạn nam đó là...",
+      ok: "Đã ghi nhận. Bạn nam đó chắc vui cả tuần." },
+    { key: "ki_niem", q: "Hãy kể 1 kỉ niệm đáng nhớ nhất của cậu với 66D nhe", type: "text", long: true, placeholder: "Kỉ niệm của mình là...",
+      ok: "Cảm ơn cậu đã kể. Chúng mình sẽ nhớ mãi.",
+      skip: {
+        labels: ["Mình yêu các bạn", "Mình yêu các bạn thật mà", "Yêu thật mà 🥺"],
+        trolls: ["Yêu thì cũng phải kể chứ 😤", "Kể một chút thôi mà, năn nỉ đó."],
+        done: "Thôi được, chúng mình cũng yêu cậu. Cho qua câu này nha 💗"
+      } }
   ],
 
   // Vòng quay: thêm/bớt ô thoải mái. spins = lần lượt quay trúng ô nào; lần cuối dẫn tới thiệp.
@@ -845,8 +882,11 @@ $("box-next").addEventListener("click", () => { show("s-quiz"); renderQuiz(); })
 /* ================== VÒNG 2: CÂU HỎI VỀ LỚP ================== */
 const QUIZ = CONFIG.quiz;
 const TOTAL = QUIZ.length + 1;
+const MCQ_COUNT = QUIZ.filter(q => q.type !== "text").length;
 const WRONG_MSG = ["Sai rồi nha. Học 66D mà không biết hả?", "Chưa đúng, thử lại đi.", "Gần đúng rồi đó.", "Hỏi bạn ngồi cạnh thử xem."];
 let qi = 0, qBusy = false, qMissed = false, qEscapes = 0;
+state.answers = {};
+$("quiz-note").hidden = !CONFIG.sheetUrl;
 function renderQuiz() {
   if (qi >= QUIZ.length) return renderNameStep();
   const item = QUIZ[qi];
@@ -856,6 +896,18 @@ function renderQuiz() {
   $("quiz-sub").textContent = "";
   const wrap = $("quiz-a");
   wrap.innerHTML = "";
+  $("quiz-free").hidden = true;
+  if (item.type === "text") return renderFree(item);
+  if (item.write) {
+    const w = document.createElement("button");
+    w.type = "button"; w.className = "ans write";
+    w.textContent = "✎ " + item.write.label;
+    w.addEventListener("click", () => {
+      if (qBusy) return;
+      renderFree({ placeholder: item.write.placeholder, ok: item.write.ok, mcq: true });
+    });
+    queueMicrotask(() => wrap.appendChild(w));
+  }
   item.a.forEach((txt, i) => {
     const b = document.createElement("button");
     b.type = "button"; b.className = "ans";
@@ -896,15 +948,86 @@ async function answer(b, i) {
   document.querySelectorAll(".ans.fleeing").forEach(unflee);
   b.classList.add("right");
   if (!qMissed) state.firstTry++;
+  state.answers[item.key || item.q] = item.correct === "all" ? `${item.a[i]} (chọn chính mình)` : item.a[i];
   $("quiz-sub").textContent = item.correct === "all" ? "Ý nào cũng đúng. Câu này cho điểm." : "Chính xác!";
-  await sleep(1100);
+  await nextQuestion(1100);
+}
+async function nextQuestion(wait) {
+  qBusy = true;
+  await sleep(wait);
   qi++;
   qBusy = false;
   renderQuiz();
 }
+
+/* câu trả lời ngắn (và nút "tự điền" của câu trắc nghiệm) */
+let skipClicks = 0;
+function renderFree(item) {
+  const box = $("quiz-free");
+  box.hidden = false;
+  const input = item.long ? $("free-long") : $("free-short");
+  $("free-long").hidden = !item.long;
+  $("free-short").hidden = !!item.long;
+  input.value = "";
+  input.placeholder = item.placeholder || "";
+  skipClicks = 0;
+  const sk = $("free-skip");
+  sk.hidden = !item.skip;
+  if (item.skip) sk.textContent = item.skip.labels[0];
+  box.onsubmit = async e => {
+    e.preventDefault();
+    if (qBusy) return;
+    const v = input.value.trim();
+    if (!v) { $("quiz-sub").textContent = "Viết gì đó đi mà."; shakeCard(); return; }
+    state.answers[QUIZ[qi].key || QUIZ[qi].q] = v;
+    if (item.mcq && !qMissed) state.firstTry++;
+    $("quiz-sub").textContent = (item.ok || "Đã ghi nhận.").replace(/\{tra_loi\}/g, v);
+    burst(25);
+    await nextQuestion(1600);
+  };
+  sk.onclick = async () => {
+    if (qBusy || !item.skip) return;
+    const s = item.skip;
+    if (skipClicks < s.trolls.length) {
+      $("quiz-sub").textContent = s.trolls[skipClicks];
+      skipClicks++;
+      sk.textContent = s.labels[Math.min(skipClicks, s.labels.length - 1)];
+      shakeCard();
+      return;
+    }
+    $("quiz-sub").textContent = s.done;
+    state.answers[QUIZ[qi].key || QUIZ[qi].q] = `(không kể, bấm "${s.labels[0]}")`;
+    burst(40);
+    await nextQuestion(1800);
+  };
+  input.focus({ preventScroll: true });
+}
+
+/* gửi câu trả lời về Google Sheet (chỉ chữ, không gửi ảnh) */
+function sendAnswers() {
+  if (!CONFIG.sheetUrl || state.sent) return;
+  state.sent = true;
+  const a = state.answers;
+  const data = {
+    ten: state.name,
+    xinh_nhat: a.xinh_nhat || "",
+    dep_trai_nhat: a.dep_trai_nhat || "",
+    ki_niem: a.ki_niem || "",
+    so_cau_dung: `${state.firstTry}/${MCQ_COUNT}`
+  };
+  try {
+    fetch(CONFIG.sheetUrl, {
+      method: "POST", mode: "no-cors", keepalive: true,
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(data)
+    }).catch(() => {});
+  } catch (e) {}
+}
+
 function renderNameStep() {
+  $("quiz-free").hidden = true;
   $("quiz-count").textContent = `Câu ${TOTAL}/${TOTAL} · câu dễ nhất`;
-  $("quiz-q").textContent = "Tên em là gì?";
+  $("quiz-q").textContent = "Tên cậu là gì?";
   $("quiz-a").innerHTML = "";
   $("quiz-sub").textContent = "Để in lên thiệp nhận quà.";
   $("name-form").hidden = false;
@@ -916,10 +1039,11 @@ $("name-form").addEventListener("submit", e => {
   const v = $("name-input").value.trim();
   if (!v) { $("quiz-sub").textContent = "Chưa nhập tên kìa."; shakeCard(); return; }
   state.name = cap(v.slice(0, 24));
+  sendAnswers();
   $("name-form").hidden = true;
   $("quiz-count").textContent = "Bước cuối";
-  $("quiz-q").textContent = `${state.name} ơi, gửi một tấm ảnh thật xinh để in lên thiệp nha`;
-  $("quiz-sub").textContent = "Ảnh chỉ nằm trên máy của em, không gửi đi đâu cả.";
+  $("quiz-q").textContent = `${state.name} ơi, cho chúng mình xin 1 tấm ảnh xinh nhất của cậu nhe`;
+  $("quiz-sub").textContent = "Ảnh được in lên thiệp ngay trên máy của cậu, không gửi đi đâu cả.";
   $("photo-step").hidden = false;
 });
 
@@ -971,6 +1095,7 @@ $("spin").addEventListener("click", () => {
   if (spinning) return;
   if (state.spins >= SPINS.length) { goFinal(); return; }
   spinning = true;
+  preparePostcard();
   const plan = SPINS[state.spins];
   let idx = PRIZES.indexOf(plan.land);
   if (idx < 0) idx = Math.floor(Math.random() * PRIZES.length);
@@ -997,18 +1122,24 @@ wheel.addEventListener("transitionend", e => {
 });
 
 /* ================== KẾT: POSTCARD 16:9 ================== */
-let cardBlob = null;
+let cardBlob = null, cardReady = null;
+// vẽ thiệp ngay từ lần quay đầu tiên, để quay xong là thiệp có sẵn
+function preparePostcard() {
+  if (!cardReady) cardReady = drawPostcard().then(canvas => new Promise(res => {
+    const url = canvas.toDataURL("image/png");
+    canvas.toBlob(b => { cardBlob = b; res(url); }, "image/png");
+  }));
+  return cardReady;
+}
 async function goFinal() {
   show("s-final");
   burst(110);
   setTimeout(() => burst(60), 900);
-  const canvas = await drawPostcard();
-  const url = canvas.toDataURL("image/png");
+  const url = await preparePostcard();
   const img = new Image();
-  img.alt = `Thiệp 20/10 của ${state.name || "em"} từ lớp ${CONFIG.className}`;
+  img.alt = `Thiệp 20/10 của ${state.name || "cậu"} từ lớp ${CONFIG.className}`;
   img.src = url;
   $("postcard").replaceChildren(img);
-  canvas.toBlob(b => cardBlob = b, "image/png");
 }
 
 function roundRect(g, x, y, w, h, r) {
@@ -1038,7 +1169,7 @@ async function drawPostcard() {
       document.fonts.load(`40px Pacifico`, "Ắ")
     ]);
   } catch (e) {}
-  const name = state.name || "Em";
+  const name = state.name || "Cậu";
   const NIGHT = "#1d0f2b", LIME = "#d6f55c", PINK = "#ff4f9a", ORANGE = "#ff9b3d", VIOLET = "#7b5cff", CREAM = "#fff4ea";
 
   // nền + khối màu kiểu Wrapped
@@ -1103,8 +1234,8 @@ async function drawPostcard() {
 
   const stats = [
     [String(state.boxes || 3), "hộp quà đã mở", LIME],
-    [`${state.firstTry}/${QUIZ.length}`, "câu về lớp đúng ngay lần đầu", PINK],
-    [String(state.spins || SPINS.length), "lần quay để trúng một lời chúc", ORANGE]
+    [`${state.firstTry}/${MCQ_COUNT}`, "câu về lớp đúng ngay lần đầu", PINK],
+    [String(SPINS.length), "lần quay để trúng một lời chúc", ORANGE]
   ];
   stats.forEach(([num, label, col], i) => {
     const sx = X + i * 255;
@@ -1125,7 +1256,7 @@ async function drawPostcard() {
 }
 
 function fileName() {
-  const slug = (state.name || "em").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+  const slug = (state.name || "cau").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   return `thiep-20-10-${CONFIG.className.toLowerCase()}-${slug}.png`;
 }
 $("save").addEventListener("click", async () => {
