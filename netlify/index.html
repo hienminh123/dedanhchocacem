@@ -142,6 +142,17 @@
     body.focus #peek img { height: 22vh; max-width: 42vw; }
     body.dim:not(.focus) #peek { transform: scale(0); }
   }
+  /* lúc đang chơi: sticker ló lên từ sau mép trên tờ thiệp (nằm sau thiệp, thiệp che phần dưới) */
+  body.focus #peek {
+    position: absolute; right: auto; bottom: auto;
+    z-index: 1;
+    transform: translateY(55%) rotate(0deg); opacity: 0;
+    transition: transform .55s cubic-bezier(.3, 1.4, .5, 1), opacity .25s;
+  }
+  body.focus #peek.out { transform: translateY(0) rotate(var(--tilt, -6deg)); opacity: 1; }
+  body.focus #peek.jump { transform: translateY(-8%) rotate(0deg); opacity: 1; }
+  body.focus main { pointer-events: none; }
+  body.focus .card { pointer-events: auto; }
   /* màn đầu: lướt xuống phần quà thì sticker trốn đi */
   body.dim:not(.focus) #peek { transform: translateY(105%); pointer-events: none; }
   @media (max-width: 600px) { body.dim:not(.focus) #peek { transform: scale(0); } }
@@ -940,6 +951,7 @@ function peekCycle() {
     const inGame = document.body.classList.contains("focus");
     peek.className = peekSide;
     peek.style.setProperty("--tilt", (peekSide === "right" ? -1 : 1) * (4 + Math.random() * 5) + "deg");
+    if (inGame) placeOnCard(); else peek.style.left = peek.style.top = "";
     void peek.offsetWidth;
     peek.classList.add("out");
     $("peek-say").textContent = pickFrom(inGame ? PEEK_GAME : PEEK_INTRO);
@@ -950,6 +962,17 @@ function peekCycle() {
   };
   // đợi ảnh sẵn sàng, nhưng không quá 1,5 giây
   Promise.race([peekImg.decode ? peekImg.decode() : Promise.resolve(), sleep(1500)]).then(go, go);
+}
+// đặt sticker ngay sau mép trên tờ thiệp, lệch về góc trái hoặc phải; 40% phía dưới nằm khuất sau thiệp
+function placeOnCard() {
+  const r = $("card").getBoundingClientRect();
+  const w = peekImg.offsetWidth || 150, h = peekImg.offsetHeight || 200;
+  const at = peekSide === "right" ? .72 + Math.random() * .16 : .12 + Math.random() * .16;
+  let x = r.left + r.width * at - w / 2;
+  x = Math.max(4, Math.min(innerWidth - w - 4, x));
+  const y = Math.max(scrollY - h * .3, r.top + scrollY - h * .6);
+  peek.style.left = (x + scrollX) + "px";
+  peek.style.top = y + "px";
 }
 function peekHide() {
   peek.classList.remove("talk", "out", "jump");
