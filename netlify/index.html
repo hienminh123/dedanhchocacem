@@ -954,7 +954,7 @@ function peekCycle() {
 function peekHide() {
   peek.classList.remove("talk", "out", "jump");
   const inGame = document.body.classList.contains("focus");
-  peekT = setTimeout(peekCycle, inGame ? 9000 + Math.random() * 7000 : 4500 + Math.random() * 4000);
+  peekT = setTimeout(peekCycle, inGame ? 5000 + Math.random() * 4000 : 2000 + Math.random() * 2000);
 }
 peek.addEventListener("click", e => {
   peekToken++;
@@ -965,7 +965,7 @@ peek.addEventListener("click", e => {
   burst(30);
   peekT = setTimeout(peekHide, 2800);
 });
-peekT = setTimeout(peekCycle, 2200);
+peekT = setTimeout(peekCycle, 1200);
 
 /* ---------- xem ảnh phóng to ---------- */
 const lb = $("lightbox"), lbImg = $("lb-img");
