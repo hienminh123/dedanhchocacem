@@ -67,7 +67,17 @@
     font: 800 12px/1.2 var(--f-ui); letter-spacing: .14em; text-transform: uppercase;
     box-shadow: var(--shadow);
   }
-  .intro-tag span { color: var(--ink-soft); letter-spacing: .04em; text-transform: none; font-weight: 700; }
+  .intro-top { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
+  .see-all {
+    border: 0; border-radius: 99px;
+    background: var(--rose); color: #fff;
+    padding: 9px 16px;
+    font: 800 13px/1.2 var(--f-ui);
+    box-shadow: var(--shadow);
+    cursor: pointer;
+  }
+  .see-all:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  #lb-count { display: block; font: 700 13px var(--f-ui); opacity: .75; margin-top: 4px; }
   .scroll-cue {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     background: var(--card); color: var(--ink);
@@ -143,7 +153,11 @@
     padding: 12px 12px 0;
     box-shadow: 0 26px 50px -18px rgba(59, 29, 42, .65);
   }
-  .pola.featured .cap { font-size: clamp(18px, 2.4vw, 26px); line-height: 2em; }
+  .pola.featured .cap {
+    font-size: clamp(14px, 2.2vw, 26px); line-height: 1.3;
+    white-space: normal; text-wrap: balance;
+    padding: 8px 4px 10px;
+  }
   .pola .cap {
     font-family: var(--f-hand);
     font-size: clamp(13px, 1.8vw, 19px);
@@ -479,7 +493,10 @@
 <canvas id="fx" aria-hidden="true"></canvas>
 
 <header id="intro">
-  <p class="intro-tag">66D · 20.10.2026 <span>· chạm vào ảnh để xem</span></p>
+  <div class="intro-top">
+    <p class="intro-tag">66D · 20.10.2026</p>
+    <button class="see-all" id="see-all" type="button">Xem hết ảnh lớp ›</button>
+  </div>
   <button class="scroll-cue" id="scroll-cue" type="button">
     Lướt xuống để nhận quà
     <small>Có quà cho các bạn nữ 66D</small>
@@ -773,13 +790,14 @@ function placeFeatured(box, w, h) {
       { x: w / 2 + dx, y: cy + 22, pw: sw, rot: 6 }
     ];
   } else {
-    const cw = Math.min(w * 0.8, 360), sw = Math.min(w * 0.54, 250);
+    // điện thoại: 3 ảnh gọn lại ở giữa, chừa chỗ cho các ảnh nền phía trên và dưới
+    const cw = Math.min(w * 0.6, 280), sw = Math.min(w * 0.42, 200);
     const ch = hOf(cw), sh = hOf(sw);
-    const total = ch + sh - 50, y0 = cy - total / 2;
+    const total = ch + sh - 44, y0 = cy - total / 2;
     slots = [
-      { x: w / 2 - sw * 0.42, y: y0 + ch - 50 + sh / 2, pw: sw, rot: -6 },
+      { x: w / 2 - sw * 0.62, y: y0 + ch - 44 + sh / 2, pw: sw, rot: -6 },
       { x: w / 2, y: y0 + ch / 2, pw: cw, rot: 2 },
-      { x: w / 2 + sw * 0.42, y: y0 + ch - 36 + sh / 2, pw: sw, rot: 7 }
+      { x: w / 2 + sw * 0.62, y: y0 + ch - 32 + sh / 2, pw: sw, rot: 7 }
     ];
   }
   if (picks.length !== 3) slots = [slots[1], slots[0], slots[2]];
@@ -843,7 +861,10 @@ function placeLb(r) {
 function setLbPhoto(idx, smallImg) {
   lbIdx = (idx + PHOTOS.length) % PHOTOS.length;
   const [src, label] = PHOTOS[lbIdx];
-  $("lb-cap").textContent = label;
+  const cnt = document.createElement("span");
+  cnt.id = "lb-count";
+  cnt.textContent = `${lbIdx + 1}/${PHOTOS.length} · ${matchMedia("(pointer: coarse)").matches ? "vuốt sang để xem tiếp" : "bấm ‹ › để xem tiếp"}`;
+  $("lb-cap").replaceChildren(label, cnt);
   lbImg.src = src;
   const big = new Image();
   big.onload = () => { if (PHOTOS[lbIdx][0] === src) lbImg.src = big.src; };
@@ -881,6 +902,27 @@ $("collage").addEventListener("click", e => {
   const pola = e.target.closest(".pola.photo");
   if (pola && !document.body.classList.contains("focus")) openLb(pola);
 });
+// mở xem lần lượt từ ảnh đầu tiên
+function openLbAt(idx) {
+  lbFrom = null;
+  const probe = new Image();
+  setLbPhoto(idx);
+  const start = r => ({ left: r.left + r.width * .2, top: r.top + r.height * .2, width: r.width * .6, height: r.height * .6 });
+  lbImg.style.transition = "none";
+  placeLb(start(lbTarget(4 / 3)));
+  lb.hidden = false;
+  void lbImg.offsetWidth;
+  lbImg.style.transition = "";
+  lb.classList.add("on");
+  placeLb(lbTarget(4 / 3));
+  probe.onload = () => placeLb(lbTarget(probe.naturalWidth / probe.naturalHeight));
+  probe.src = PHOTOS[lbIdx][0];
+  $("lb-close").focus({ preventScroll: true });
+}
+if (PHOTOS.length) {
+  $("see-all").textContent = `Xem hết ${PHOTOS.length} ảnh lớp ›`;
+  $("see-all").addEventListener("click", () => openLbAt(0));
+} else $("see-all").hidden = true;
 $("lb-close").addEventListener("click", closeLb);
 $("lb-prev").addEventListener("click", () => stepLb(-1));
 $("lb-next").addEventListener("click", () => stepLb(1));
