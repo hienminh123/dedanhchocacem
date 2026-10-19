@@ -408,6 +408,7 @@
   .free input:focus, .free textarea:focus { outline: none; border-color: var(--rose); }
   .free-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
   .ans.write { border-style: dashed; color: var(--rose); }
+  .gift-q { font-weight: 800; font-size: clamp(19px, 4vw, 22px); line-height: 1.35; text-wrap: balance; }
 
   .drop {
     width: min(220px, 100%); aspect-ratio: 4 / 5;
@@ -655,6 +656,11 @@
       <h2 class="title sm" id="wheel-title">Quay để chọn quà</h2>
       <div class="wheel-wrap"><div class="pointer"></div><div class="wheel" id="wheel"></div></div>
       <p class="sub" id="wheel-sub">Ô nào cũng là quà thật. Chắc vậy.</p>
+      <form class="free" id="gift-form" hidden>
+        <label class="gift-q" for="gift-day" id="gift-q"></label>
+        <input id="gift-day" name="gift-day" type="text" maxlength="80" autocomplete="off">
+        <div class="free-row"><button class="btn yes" type="submit">Gửi</button></div>
+      </form>
       <button class="btn yes" id="spin" type="button">Quay</button>
     </section>
 
@@ -760,12 +766,18 @@ const CONFIG = {
 
   // Vòng quay: thêm/bớt ô thoải mái. spins = lần lượt quay trúng ô nào; lần cuối dẫn tới thiệp.
   wheel: {
-    items: ["1 tỷ đồng", "iPhone 17", "Đà Lạt 3N2Đ", "Lời chúc", "Trà sữa", "Gấu bông"],
+    items: ["1 tỷ đồng", "iPhone 17", "Đà Lạt 3N2Đ", "Quà đặc biệt", "Trà sữa", "Gấu bông"],
     spins: [
       { land: "1 tỷ đồng", title: "Trúng 1 tỷ đồng!", sub: "Thủ quỹ vừa báo quỹ lớp còn 37.000đ. Quay lại nha.", btn: "Quay lại" },
       { land: "iPhone 17", title: "Trúng iPhone 17!", sub: "Kho báo hết hàng rồi. Quay lần cuối, hứa đó.", btn: "Quay lần cuối" },
-      { land: "Lời chúc", title: "Giải đặc biệt: Lời chúc 20/10", sub: "Giải này thì lớp có thật.", btn: "Nhận lời chúc" }
-    ]
+      { land: "Quà đặc biệt", title: "Trúng phần quà đặc biệt! 🎁", sub: "Quà thật nha, các bạn nam sẽ mang tới tận tay cậu.", btn: "Nhận thêm lời chúc" }
+    ],
+    // Sau lượt quay cuối: hỏi ngày nhận quà, câu trả lời gửi về Google Sheet (cột "Hôm nào nhận quà").
+    giftDay: {
+      q: "Hôm nào cậu nhận quà được zậyy?",
+      placeholder: "Ví dụ: sáng thứ Hai, giờ ra chơi",
+      ok: "Ghi nhận rồi nha! Hôm đó tụi mình mang quà tới 💝"
+    }
   },
 
   // Lời chúc in trên thiệp. {ten} sẽ được thay bằng tên cậu ấy nhập.
@@ -775,6 +787,9 @@ const CONFIG = {
   // Trò đập chuột (sau vòng quay): mỗi "chuột" là một bạn nam. Đập trúng ai thì hiện lời chúc của người đó.
   // photo = ảnh mặt (vuông là đẹp nhất), để "" thì hiện chữ cái đầu tên.
   // {ten} trong lời chúc sẽ được thay bằng tên bạn nữ. Để danh sách trống thì bỏ qua trò này.
+  // dodges: mấy cú đập trúng đầu tiên bị bạn nam né (2 = phải đập tới lần thứ 3 mới trúng).
+  // maxHitsPerBoy: mỗi bạn nam bị đập tối đa bao nhiêu lần, tính chung tất cả bạn nữ (đếm trên Google Sheet).
+  whack: { dodges: 2, maxHitsPerBoy: 10 },
   boys: [
     { name: "Bạn nam 1", photo: "photos/nam/ban-nam-1.webp", wish: "Chúc {ten} 20/10 thật xinh, thật vui, và qua môn nào cũng điểm A nha!" },
     { name: "Bạn nam 2", photo: "photos/nam/ban-nam-2.webp", wish: "Chúc {ten} luôn cười tươi như ảnh lớp đầu năm. Cảm ơn vì đã làm 66D vui hơn." },
@@ -1286,17 +1301,10 @@ function renderFree(item) {
 }
 
 /* gửi câu trả lời về Google Sheet (chỉ chữ, không gửi ảnh) */
-function sendAnswers() {
-  if (!CONFIG.sheetUrl || state.sent) return;
-  state.sent = true;
-  const a = state.answers;
-  const data = {
-    ten: state.name,
-    xinh_nhat: a.xinh_nhat || "",
-    dep_trai_nhat: a.dep_trai_nhat || "",
-    ki_niem: a.ki_niem || "",
-    so_cau_dung: `${state.firstTry}/${MCQ_COUNT}`
-  };
+// mỗi lượt chơi có một mã riêng để ngày nhận quà được ghi vào đúng dòng của bạn đó trên Sheet
+state.playId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+function postSheet(data) {
+  if (!CONFIG.sheetUrl) return;
   try {
     fetch(CONFIG.sheetUrl, {
       method: "POST", mode: "no-cors", keepalive: true,
@@ -1304,6 +1312,23 @@ function sendAnswers() {
       body: JSON.stringify(data)
     }).catch(() => {});
   } catch (e) {}
+}
+function sendGiftDay(v) {
+  postSheet({ id: state.playId, ten: state.name, ngay_nhan_qua: v });
+}
+function sendAnswers() {
+  if (!CONFIG.sheetUrl || state.sent) return;
+  state.sent = true;
+  const a = state.answers;
+  const data = {
+    id: state.playId,
+    ten: state.name,
+    xinh_nhat: a.xinh_nhat || "",
+    dep_trai_nhat: a.dep_trai_nhat || "",
+    ki_niem: a.ki_niem || "",
+    so_cau_dung: `${state.firstTry}/${MCQ_COUNT}`
+  };
+  postSheet(data);
 }
 
 function renderNameStep() {
@@ -1350,8 +1375,8 @@ const drop = $("drop");
 drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
 drop.addEventListener("dragleave", () => drop.classList.remove("over"));
 drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); loadPhoto(e.dataTransfer.files[0]); });
-$("photo-next").addEventListener("click", () => { burst(40); show("s-wheel"); });
-$("photo-skip").addEventListener("click", () => { state.photo = null; show("s-wheel"); });
+$("photo-next").addEventListener("click", () => { burst(40); show("s-wheel"); loadHitCounts(); });
+$("photo-skip").addEventListener("click", () => { state.photo = null; show("s-wheel"); loadHitCounts(); });
 
 /* ================== VÒNG 3: VÒNG QUAY ================== */
 const WHEEL_COLORS = ["#d93f72", "#f0b23a", "#2f9a5c", "#7a3a5c", "#e8679a", "#4f86c6", "#ef7d3c", "#8a5cd1"];
@@ -1399,8 +1424,30 @@ wheel.addEventListener("transitionend", e => {
   $("spin").textContent = plan.btn;
   $("spin").disabled = false;
   state.spins++;
-  if (state.spins < SPINS.length) shakeCard(); else burst(50);
+  if (state.spins < SPINS.length) shakeCard();
+  else {
+    burst(80);
+    // lượt cuối: hỏi hôm nào nhận quà rồi mới cho đi tiếp
+    const gd = CONFIG.wheel.giftDay;
+    if (gd) {
+      $("gift-q").textContent = gd.q;
+      $("gift-day").placeholder = gd.placeholder || "";
+      $("gift-form").hidden = false;
+      $("spin").hidden = true;
+    }
+  }
   spinning = false;
+});
+$("gift-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = $("gift-day").value.trim();
+  if (!v) { $("wheel-sub").textContent = "Chọn một hôm đi mà, để tụi mình chuẩn bị quà."; shakeCard(); return; }
+  state.giftDay = v;
+  sendGiftDay(v);
+  $("gift-form").hidden = true;
+  $("wheel-sub").textContent = CONFIG.wheel.giftDay.ok;
+  $("spin").hidden = false;
+  burst(40);
 });
 
 /* ================== GIẢI ĐẶC BIỆT: ĐẬP CHUỘT ================== */
@@ -1408,7 +1455,24 @@ const BOYS = (CONFIG.boys || []).filter(b => b && b.name);
 const FACE_COLORS = ["#d93f72", "#4f86c6", "#2f9a5c", "#ef7d3c", "#8a5cd1", "#7a3a5c"];
 const HOLES = 9;
 const MISS_MSG = ["Hụt rồi!", "Chậm một nhịp rồi.", "Bạn ấy trốn nhanh ghê.", "Nhắm kỹ rồi đập nha."];
-let whackTimer = 0, whackOn = false, misses = 0;
+const DODGE_MSG = ["Ơ, né được rồi 😜", "Hụt! Bạn ấy lặn nhanh quá", "Sắp trúng rồi, đập tiếp đi!"];
+const WH = CONFIG.whack || {};
+const DODGES = WH.dodges ?? 2;            // số cú đập trúng đầu tiên bị né (cú thứ DODGES + 1 mới trúng)
+const MAX_HITS = WH.maxHitsPerBoy ?? 10;  // mỗi bạn nam bị đập tối đa bao nhiêu lần (tính chung mọi bạn nữ)
+let whackTimer = 0, whackOn = false, misses = 0, dodgeLeft = DODGES;
+let hitCounts = {};                       // số lần mỗi bạn nam đã bị đập, lấy từ Google Sheet
+const openBoy = b => (hitCounts[b.name] || 0) < MAX_HITS;
+let countsReady = Promise.resolve();
+function loadHitCounts() {
+  if (!CONFIG.sheetUrl || !window.fetch) return countsReady;
+  const ctl = window.AbortController ? new AbortController() : null;
+  if (ctl) setTimeout(() => ctl.abort(), 6000);
+  countsReady = fetch(CONFIG.sheetUrl + "?action=counts", ctl ? { signal: ctl.signal } : {})
+    .then(r => r.json())
+    .then(d => { if (d && typeof d === "object") hitCounts = d; })
+    .catch(() => {});             // không lấy được thì cứ chơi bình thường
+  return countsReady;
+}
 const holeState = [];   // mỗi lỗ: { boy, timer }
 const hitBoys = new Set();
 function faceNode(boy, i) {
@@ -1459,8 +1523,10 @@ function popUp() {
   if (upCount < 3) {
     const free = holeState.map((s, i) => s.boy ? -1 : i).filter(i => i >= 0);
     const busy = new Set(holeState.map(s => s.boy).filter(Boolean));
-    let pool = BOYS.filter(b => !busy.has(b) && !hitBoys.has(b));
-    if (!pool.length) pool = BOYS.filter(b => !busy.has(b));
+    // ưu tiên bạn chưa bị cậu đập và chưa bị đập đủ MAX_HITS lần
+    let pool = BOYS.filter(b => !busy.has(b) && !hitBoys.has(b) && openBoy(b));
+    if (!pool.length) pool = BOYS.filter(b => !busy.has(b) && openBoy(b));
+    if (!pool.length && !BOYS.some(openBoy)) pool = BOYS.filter(b => !busy.has(b)); // ai cũng đủ lượt rồi thì thôi
     if (free.length && pool.length) {
       const i = free[(Math.random() * free.length) | 0];
       const boy = pool[(Math.random() * pool.length) | 0];
@@ -1485,6 +1551,7 @@ function hideHole(i) {
 }
 function startWhack() {
   whackOn = true;
+  dodgeLeft = DODGES;
   $("whack").hidden = false;
   $("wish-card").hidden = true;
   $("whack-title").hidden = true;
@@ -1502,12 +1569,21 @@ function hit(i, e) {
   if (!whackOn || !boy) return;
   const hole = $("whack").children[i];
   if (e && e.clientX) swingAt(e);
+  if (dodgeLeft > 0) {           // troll: bạn nam lặn xuống ngay trước khi búa chạm
+    dodgeLeft--;
+    hideHole(i);
+    $("whack-sub").textContent = DODGE_MSG[(DODGES - dodgeLeft - 1) % DODGE_MSG.length];
+    shakeCard();
+    return;
+  }
   hole.classList.add("bonk");
   sparkle(e && e.clientX ? e.clientX : innerWidth / 2, e && e.clientY ? e.clientY : innerHeight / 2, 16, 120);
   whackOn = false;
   clearTimeout(whackTimer);
   clearTimeout(holeState[i].timer);
   hitBoys.add(boy);
+  hitCounts[boy.name] = (hitCounts[boy.name] || 0) + 1;
+  postSheet({ type: "hit", boy: boy.name, id: state.playId });
   setTimeout(() => showWish(boy), 550);
 }
 function showWish(boy) {
@@ -1523,12 +1599,15 @@ function showWish(boy) {
   $("wish-name").textContent = boy.name;
   $("wish-text").textContent = `“${wish}”`;
   $("wish-card").hidden = false;
-  $("whack-again").hidden = hitBoys.size >= BOYS.length;
+  $("whack-again").hidden = !BOYS.some(b => !hitBoys.has(b) && openBoy(b));
   burst(50);
 }
-function goWhack() {
+async function goWhack() {
+  const ready = loadHitCounts();
   show("s-whack");
   if (!$("whack").children.length) buildWhack();
+  $("whack-sub").textContent = "Đang gọi các bạn nam ra...";
+  await Promise.race([ready, sleep(2500)]);   // đợi biết ai đã bị đập đủ lượt (tối đa 2,5 giây)
   startWhack();
 }
 $("whack-again").addEventListener("click", startWhack);
