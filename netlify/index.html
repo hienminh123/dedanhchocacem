@@ -441,7 +441,7 @@
     gap: 6px; align-items: center;
     max-height: 330px; overflow-y: auto; padding-right: 2px;
   }
-  .sched-grid .sh { font: 800 11px var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+  .sched-grid .sh { font: 800 11px/1.25 var(--f-ui); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); white-space: pre-line; text-align: center; }
   .sched-grid .day { font: 700 14px/1.2 var(--f-ui); text-align: left; padding-right: 4px; white-space: nowrap; }
   .sched-grid .day small { display: block; font-weight: 600; font-size: 12px; color: var(--ink-soft); }
   .slot {
@@ -586,6 +586,7 @@
     background: #fff;
     background-image: repeating-linear-gradient(transparent 0 31px, var(--rose-soft) 31px 32px);
     padding: 22px 20px 20px;
+    margin-top: 44px;   /* chừa chỗ cho ảnh mặt nhô lên trên thẻ, không đè dòng chữ phía trên */
     box-shadow: 0 10px 26px -12px rgba(59, 29, 42, .5);
     transform: rotate(1deg);
     animation: pop .45s ease-out;
@@ -712,8 +713,8 @@
         <span class="sched-badge">Quan trọng nha</span>
         <h3 class="gift-q" id="gift-q"></h3>
         <p class="sched-note" id="gift-note"></p>
-        <div class="sched-grid" id="sched-grid" role="group" aria-label="Chọn những buổi cậu rảnh"></div>
-        <p class="sched-count" id="sched-count">Chưa chọn buổi nào</p>
+        <div class="sched-grid" id="sched-grid" role="group" aria-label="Chọn những tiết cậu rảnh"></div>
+        <p class="sched-count" id="sched-count">Chưa chọn tiết nào</p>
         <label class="visually-hidden" for="gift-day">Ghi chú thêm</label>
         <input id="gift-day" name="gift-day" type="text" maxlength="120" autocomplete="off">
         <div class="free-row"><button class="btn yes" type="submit">Gửi lịch rảnh</button></div>
@@ -830,12 +831,13 @@ const CONFIG = {
       { land: "Quà đặc biệt", title: "Trúng phần quà đặc biệt! 🎁", sub: "Quà thật nha, các bạn nam sẽ mang tới tận tay cậu.", btn: "Nhận thêm lời chúc" }
     ],
     // Sau lượt quay cuối: hỏi ngày nhận quà, câu trả lời gửi về Google Sheet (cột "Hôm nào nhận quà").
-    // days = hiện bao nhiêu ngày (bắt đầu từ ngày mai), slots = các buổi trong ngày.
+    // days = hiện bao nhiêu ngày học (bắt đầu từ ngày mai, bỏ Chủ nhật nếu skipSunday), slots = các tiết trong ngày.
     giftDay: {
       q: "Hôm nào cậu nhận quà được zậyy?",
-      note: "📅 Tụi mình đang lên lịch một buổi trao quà cho cả lớp 66D. Cậu bấm chọn tất cả những buổi cậu rảnh nha, chọn càng nhiều thì càng dễ tìm được hôm cả lớp cùng đi được.",
-      days: 10,
-      slots: ["Sáng", "Chiều", "Tối"],
+      note: "📅 Tụi mình đang lên lịch một buổi trao quà cho cả lớp 66D. Cậu xem thời khóa biểu rồi bấm chọn tất cả những tiết cậu rảnh nha, chọn càng nhiều thì càng dễ tìm được lúc cả lớp cùng đi được.",
+      days: 6,
+      skipSunday: true,
+      slots: ["Tiết 1-2", "Tiết 3-4", "Tiết 5-6", "Tiết 7-8"],
       placeholder: "Ghi chú thêm (không bắt buộc), ví dụ: tối thứ 6 phải về sớm",
       ok: "Ghi nhận lịch rảnh rồi nha! Tụi mình sẽ chốt một buổi cho cả lớp và báo cậu sau 💝"
     }
@@ -853,17 +855,17 @@ const CONFIG = {
   whack: { dodges: 2, maxHitsPerBoy: 10 },
   boys: [
     // Lời chúc dưới đây là câu mẫu, nhờ từng bạn nam tự viết lại câu của mình nha.
-    { name: "Duy", photo: "photos/nam/duy.webp", wish: "Chúc {ten} 20/10 thật xinh, thật vui, và qua môn nào cũng điểm A nha!" },
-    { name: "Hải", photo: "photos/nam/hai.webp", wish: "Chúc {ten} luôn cười tươi như ảnh lớp đầu năm. Cảm ơn vì đã làm 66D vui hơn." },
-    { name: "Hiếu", photo: "photos/nam/hieu.webp", wish: "Chúc {ten} ngủ đủ giấc, deadline không dí, trà sữa không bao giờ hết." },
-    { name: "Hùng", photo: "photos/nam/hung.webp", wish: "20/10 vui vẻ nha {ten}! Có gì khó cứ gọi tụi mình." },
-    { name: "Huy", photo: "photos/nam/huy.webp", wish: "Chúc {ten} một năm học thật nhẹ nhàng và nhiều kỉ niệm đẹp với 66D." },
-    { name: "Khôi", photo: "photos/nam/khoi.webp", wish: "Chúc {ten} luôn xinh, luôn vui, và luôn là chính mình." },
-    { name: "Long", photo: "photos/nam/long.webp", wish: "Chúc {ten} 20/10 được chiều hết cỡ, ăn gì cũng ngon mà không lo tăng cân." },
-    { name: "Mạnh", photo: "photos/nam/manh.webp", wish: "Chúc {ten} học đâu nhớ đó, thi đâu trúng tủ đó nha!" },
-    { name: "Minh", photo: "photos/nam/minh.webp", wish: "Cảm ơn {ten} đã là một phần của 66D. Chúc cậu 20/10 thật nhiều niềm vui." },
-    { name: "Quyết", photo: "photos/nam/quyet.webp", wish: "Chúc {ten} lúc nào cũng cười như mình trong ảnh này nè!" },
-    { name: "Tuấn", photo: "photos/nam/tuan.webp", wish: "Chúc {ten} 20/10 an yên, xinh đẹp và luôn được yêu thương." }
+    { name: "Duy", photo: "photos/nam/duy.webp", wish: "Chúc cậu ngày 20/10 thật vui vẻ, luôn xinh đẹp, rạng rỡ và gặp nhiều may mắn trong cuộc sống. Mong mọi điều tốt đẹp sẽ đến với cậu, những ước mơ sớm thành hiện thực và mỗi ngày đều có thật nhiều lý do để mỉm cười." },
+    { name: "Hải", photo: "photos/nam/hai.webp", wish: "Thật không phải là khoe đâu, Hoàng Hải chỉ muốn nói là Hoàng Hải cảm thấy rất vui khi được gặp được những người đẹp 66D, người gì mà vừa học giỏi vừa xinh gái lại còn dường thế. Nhân ngày 20/10, Hải muốn chúc chị em 66D luôn có nhiều sức khỏe để đi ăn đi chơi đi trải nghiệm những thứ mới mẻ, luôn hạnh phúc bên gia đình và những người yêu quý nhớ, đặc biệt là ae 66D chúng tôi nhé và sắp tới ra trường sẽ có sự nghiệp ổn định để phát triển đến đỉnh cao cuộc đời nhé. 66D vui nhộn nhất là khi có các người đẹp đó." },
+    { name: "Hiếu", photo: "photos/nam/hieu.webp", wish: "ngày Đinh Mão tháng Mậu Tuất năm Bính Ngọ, xin chúc tất cả các bạn nữ xinh đẹp lớp 66D mãi mãi mạnh khoẻ, hạnh phúc, gia đình ấm êm, tình cảm viên mãn. Ai có người yêu thì luôn được yêu thương, che chở. Ai chưa có người yêu lại sớm tìm được một nửa mảnh ghép của cuộc đời mình. Chúc tất cả chị em có thật nhiều may mắn, gặt hái được thật nhiều thành công và tiến gần hơn tới ước mơ của mình nhé." },
+    { name: "Hùng", photo: "photos/nam/hung.webp", wish: "Nhân Ngày Phụ nữ Việt Nam 20/10, chúc cậu luôn hạnh phúc, bình an và được yêu thương theo cách mà cậu xứng đáng. Mong cậu có đủ mạnh mẽ để vượt qua khó khăn, đủ dịu dàng để yêu thương bản thân và đủ niềm tin để đón nhận những điều tốt đẹp phía trước." },
+    { name: "Huy", photo: "photos/nam/huy.webp", wish: "Cảm ơn vì chúng ta đã cùng nhau đi qua những ngày vui buồn, những lần giận dỗi và cả những khoảnh khắc chẳng thể quên. Chúc cậu 20/10 thật ngọt ngào, luôn giữ được nụ cười quen thuộc và có thêm nhiều thành công, hạnh phúc. Mong tình bạn của chúng ta sẽ luôn bền lâu theo năm tháng." },
+    { name: "Khôi", photo: "photos/nam/khoi.webp", wish: "Ngày 20/10 là ngày tôn vinh phụ nữ Việt Nam. Tôi mong cậu có một ngày thật ý nghĩa, vui vẻ. Chúc cậu ngày càng xinh đẹp và sớm tìm thấy \"hoàng tử của cuộc đời\"." },
+    { name: "Long", photo: "photos/nam/long.webp", wish: "Tình bạn của chúng ta mãi bền chặt theo thời gian. Tôi mong cậu và tôi luôn giữ được tình bạn này, cùng nắm tay nhau chúc mừng ngày 20/10 thêm rất nhiều năm nữa. Cảm ơn cậu đã luôn bên tôi lúc tôi mệt mỏi, tủi thân nhất." },
+    { name: "Mạnh", photo: "photos/nam/manh.webp", wish: "Nhân dịp 20/10 xin chúc các chị em một ngày vui vẻ bên bạn bè, gia đình người thân. Chúc chị em càng ngày càng rực rỡ, càng xinh đẹp và thành công trên con đường mình theo đuổi nhé" },
+    { name: "Minh", photo: "photos/nam/minh.webp", wish: "Chúc cậu ngày 20/10 thật nhiều niềm vui và luôn tự tin trên con đường mình đã chọn. Mong những nỗ lực hôm nay sẽ mang lại thành quả xứng đáng, công việc ngày càng thuận lợi và cậu luôn đủ bản lĩnh để chinh phục những mục tiêu lớn hơn." },
+    { name: "Quyết", photo: "photos/nam/quyet.webp", wish: "Chúc cô bạn của tôi luôn xinh đẹp theo cách riêng, tự tin với những gì mình có và không ngừng tỏa sáng bằng chính tài năng, cá tính của mình. Mong cậu không chỉ có vẻ ngoài rạng rỡ mà còn sở hữu một trái tim bình yên, một tâm hồn vui vẻ và cuộc sống nhiều điều đáng mong chờ." },
+    { name: "Tuấn", photo: "photos/nam/tuan.webp", wish: "Bạn thân ơi, nhân ngày 20/10, chúc cậu sẽ có một tình yêu đẹp, sống hạnh phúc bên gia đình và người thân yêu của mình. Tôi luôn mong những điều tốt đẹp sẽ đến với cậu - cô gái tốt bụng và chân thành." }
   ]
 };
 /* =========================================================== */
@@ -1512,10 +1514,16 @@ function showSchedule(gd) {
   grid.style.setProperty("--slots", slots.length);
   grid.innerHTML = "";
   grid.append(document.createElement("span"));
-  slots.forEach(s => { const h = document.createElement("span"); h.className = "sh"; h.textContent = s; grid.append(h); });
+  // tiêu đề cột: "Tiết 1-2" xuống dòng thành "Tiết / 1-2" cho gọn trên điện thoại
+  slots.forEach(s => { const h = document.createElement("span"); h.className = "sh"; h.textContent = s.replace(/^(Tiết)\s+/, "$1\n"); grid.append(h); });
   const today = new Date();
-  for (let k = 1; k <= (gd.days || 10); k++) {
+  const dates = [];
+  for (let k = 1; dates.length < (gd.days || 6) && k < 60; k++) {
     const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + k);
+    if (gd.skipSunday && d.getDay() === 0) continue;
+    dates.push(d);
+  }
+  for (const d of dates) {
     const label = `${THU[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
     const day = document.createElement("span");
     day.className = "day";
@@ -1524,14 +1532,14 @@ function showSchedule(gd) {
     slots.forEach(s => {
       const b = document.createElement("button");
       b.type = "button"; b.className = "slot";
-      b.textContent = s;
+      b.textContent = s.replace(/^Tiết\s+/, "");
       b.dataset.day = label; b.dataset.slot = s;
       b.setAttribute("aria-pressed", "false");
-      b.setAttribute("aria-label", `${THU_FULL[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}, buổi ${s.toLowerCase()}`);
+      b.setAttribute("aria-label", `${THU_FULL[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}, ${s.toLowerCase()}`);
       b.addEventListener("click", () => {
         b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");
         const n = grid.querySelectorAll('.slot[aria-pressed="true"]').length;
-        $("sched-count").textContent = n ? `Đã chọn ${n} buổi` : "Chưa chọn buổi nào";
+        $("sched-count").textContent = n ? `Đã chọn ${n} tiết` : "Chưa chọn tiết nào";
       });
       grid.append(b);
     });
@@ -1554,7 +1562,7 @@ $("gift-form").addEventListener("submit", e => {
   });
   const note = $("gift-day").value.trim();
   if (!byDay.size && !note) {
-    $("sched-count").textContent = "Chọn ít nhất một buổi nha, để tụi mình xếp lịch cho cả lớp.";
+    $("sched-count").textContent = "Chọn ít nhất một tiết nha, để tụi mình xếp lịch cho cả lớp.";
     shakeCard();
     return;
   }
@@ -1718,6 +1726,7 @@ function showWish(boy) {
   face.style.background = FACE_COLORS[BOYS.indexOf(boy) % FACE_COLORS.length];
   $("wish-name").textContent = boy.name;
   $("wish-text").textContent = `“${wish}”`;
+  $("wish-text").style.fontSize = wish.length > 260 ? "19px" : "";   // lời chúc dài thì chữ nhỏ lại một chút
   $("wish-card").hidden = false;
   $("whack-again").hidden = !BOYS.some(b => !hitBoys.has(b) && openBoy(b));
   burst(50);
