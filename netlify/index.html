@@ -629,6 +629,32 @@
   .wish-from b { color: var(--rose); }
   .wish-text { margin: 0; font: 23px/1.4 var(--f-hand); color: var(--ink); text-wrap: balance; }
 
+  /* ---------- nút bất ngờ + video ---------- */
+  .surprise-wrap { display: grid; justify-items: center; gap: 6px; margin-top: 4px; }
+  .btn.surprise {
+    background: var(--chili);
+    font-size: 19px; padding: 14px 28px;
+    animation: tempt 1.8s ease-in-out infinite;
+  }
+  @keyframes tempt { 0%, 100% { rotate: 0deg; scale: 1; } 10% { rotate: -4deg; scale: 1.06; } 20% { rotate: 4deg; scale: 1.06; } 30% { rotate: 0deg; scale: 1; } }
+  #vid-modal {
+    position: fixed; inset: 0; z-index: 75;
+    background: rgba(29, 15, 43, .92);
+    display: grid; place-items: center;
+    padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  }
+  .vid-box { display: grid; justify-items: center; gap: 12px; width: 100%; max-width: 900px; }
+  .vid-title { margin: 0; color: #fff; font: 400 clamp(26px, 6vw, 38px)/1.3 var(--f-display); text-align: center; }
+  .vid-cap { margin: 0; color: rgba(255, 255, 255, .8); font: 22px/1.3 var(--f-hand); text-align: center; }
+  .vid-slot video, .vid-slot iframe {
+    display: block; border: 0; border-radius: 14px; background: #000;
+    max-width: 100%; max-height: 72vh;
+    box-shadow: 0 20px 50px -20px rgba(0, 0, 0, .8);
+  }
+  .vid-slot iframe { width: min(900px, 100%); aspect-ratio: var(--ratio, 16 / 9); height: auto; }
+  .vid-slot iframe.tall { width: auto; height: 72vh; }
+  #vid-close { top: max(16px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); }
+
   #fx { position: fixed; inset: 0; pointer-events: none; z-index: 60; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -653,6 +679,15 @@
 </header>
 
 <div id="peeks" aria-hidden="true"></div>
+
+<div id="vid-modal" role="dialog" aria-modal="true" aria-label="Video chúc mừng từ các bạn nam" hidden>
+  <div class="vid-box">
+    <p class="vid-title" id="vid-title">Bất ngờ chưa! 💌</p>
+    <div class="vid-slot" id="vid-slot"></div>
+    <p class="vid-cap" id="vid-cap">Từ các bạn nam 66D</p>
+  </div>
+  <button class="lb-btn" id="vid-close" type="button" aria-label="Đóng video">×</button>
+</div>
 
 <div id="lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh lớp" hidden>
   <img id="lb-img" alt="">
@@ -775,6 +810,10 @@
         </div>
         <p class="tiny" id="save-hint">Trên điện thoại: nhấn giữ vào thiệp để lưu ảnh, hoặc chụp màn hình.</p>
       </div>
+      <div class="surprise-wrap" id="surprise-wrap" hidden>
+        <button class="btn surprise" id="surprise" type="button">🚫 Đừng ấn vào đây</button>
+        <p class="tiny" id="surprise-hint">(có bất ngờ đấy, đừng ấn)</p>
+      </div>
       <button class="btn ghost" id="replay" type="button">Chơi lại từ đầu</button>
     </section>
 
@@ -818,6 +857,16 @@ const CONFIG = {
   // Ảnh mặt của các bạn trong trò đập chuột (boys) cũng tự bật ra ngẫu nhiên; faceStickers: false để tắt.
   // peek: introMax/gameMax = tối đa bao nhiêu sticker cùng lúc, introEvery/gameEvery = cứ bao nhiêu ms (từ-đến) thì bật thêm một cái.
   peek: { introMax: 4, gameMax: 3, introEvery: [500, 1100], gameEvery: [900, 1800] },
+
+  // Nút "Đừng ấn vào đây" dưới postcard → mở video chúc mừng của các bạn nam.
+  // Điền MỘT trong hai: video = file mp4 bỏ trong thư mục videos/ (dưới 25MB), hoặc youtube = link YouTube (để chế độ Không công khai).
+  // Để trống cả hai thì nút không hiện. tall: true nếu video quay dọc.
+  surprise: {
+    video: "videos/loi-chuc.mp4",
+    youtube: "",
+    tall: true,
+    trolls: ["Đã bảo đừng ấn mà 😤", "Ấn nữa là chịu trách nhiệm đó nha"]
+  },
   stickers: [
     "photos/sticker-hoi-con-trai.webp",
     "photos/sticker-ban-nam-1.webp",
@@ -1060,7 +1109,7 @@ const randIn = ([a, b]) => a + Math.random() * (b - a);
 function peekTick() {
   clearTimeout(peekT);
   const inGame = document.body.classList.contains("focus");
-  const paused = !$("lightbox").hidden || (!inGame && document.body.classList.contains("dim"));
+  const paused = !$("lightbox").hidden || !$("vid-modal").hidden || (!inGame && document.body.classList.contains("dim"));
   if (!paused && STICKERS.length && livePeeks.size < (inGame ? PK.gameMax : PK.introMax)) spawnPeek(inGame);
   peekT = setTimeout(peekTick, randIn(inGame ? PK.gameEvery : PK.introEvery));
 }
@@ -2033,6 +2082,59 @@ $("copy-ig").addEventListener("click", async () => {
   }
 });
 $("replay").addEventListener("click", () => location.reload());
+
+/* ---------- nút "Đừng ấn vào đây" → video chúc mừng ---------- */
+const SUR = CONFIG.surprise || {};
+function youtubeId(url) {
+  const m = String(url || "").match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/);
+  return m ? m[1] : "";
+}
+const hasSurprise = !!(SUR.video || youtubeId(SUR.youtube));
+$("surprise-wrap").hidden = !hasSurprise;
+let surpriseClicks = 0;
+$("surprise").addEventListener("click", () => {
+  const trolls = SUR.trolls || [];
+  if (surpriseClicks < trolls.length) {          // troll vài lần trước khi mở
+    $("surprise").textContent = trolls[surpriseClicks];
+    $("surprise-hint").textContent = surpriseClicks + 1 < trolls.length ? "(thật sự đừng ấn nha)" : "(ấn lần nữa là mở thật đó)";
+    surpriseClicks++;
+    shakeCard();
+    return;
+  }
+  openSurprise();
+});
+function openSurprise() {
+  const slot = $("vid-slot");
+  slot.innerHTML = "";
+  const id = youtubeId(SUR.youtube);
+  if (SUR.video) {
+    const v = document.createElement("video");
+    v.src = SUR.video; v.controls = true; v.playsInline = true; v.autoplay = true; v.preload = "auto";
+    v.setAttribute("playsinline", "");
+    slot.appendChild(v);
+    v.play().catch(() => {});                     // đã có cú bấm của người dùng nên thường phát được luôn
+  } else if (id) {
+    const f = document.createElement("iframe");
+    f.src = `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0`;
+    f.title = "Video chúc mừng từ các bạn nam";
+    f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+    f.allowFullscreen = true;
+    if (SUR.tall) { f.classList.add("tall"); f.style.setProperty("--ratio", "9 / 16"); }
+    slot.appendChild(f);
+  }
+  $("vid-modal").hidden = false;
+  burst(80);
+  $("vid-close").focus({ preventScroll: true });
+}
+function closeSurprise() {
+  $("vid-slot").innerHTML = "";                   // gỡ video ra để dừng phát
+  $("vid-modal").hidden = true;
+  $("surprise").textContent = "Xem lại video 💌";
+  $("surprise-hint").textContent = "(lần này cho ấn rồi đó)";
+}
+$("vid-close").addEventListener("click", closeSurprise);
+$("vid-modal").addEventListener("click", e => { if (e.target === $("vid-modal")) closeSurprise(); });
+addEventListener("keydown", e => { if (e.key === "Escape" && !$("vid-modal").hidden) closeSurprise(); });
 
 /* ================== HIỆU ỨNG CÁNH HOA ================== */
 const fx = $("fx"), ctx = fx.getContext("2d");
