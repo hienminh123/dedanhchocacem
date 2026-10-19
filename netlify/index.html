@@ -408,7 +408,59 @@
   .free input:focus, .free textarea:focus { outline: none; border-color: var(--rose); }
   .free-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
   .ans.write { border-style: dashed; color: var(--rose); }
-  .gift-q { font-weight: 800; font-size: clamp(19px, 4vw, 22px); line-height: 1.35; text-wrap: balance; }
+  .gift-q { margin: 0; font-weight: 800; font-size: clamp(19px, 4vw, 22px); line-height: 1.35; text-wrap: balance; }
+
+  /* bảng chọn lịch rảnh: khung vàng nổi bật */
+  .schedule {
+    position: relative;
+    width: 100%;
+    display: grid; gap: 12px;
+    margin-top: 12px;
+    padding: 24px clamp(10px, 3vw, 18px) 18px;
+    background: #fff8e6;
+    border: 3px solid var(--gold); border-radius: 18px;
+    box-shadow: 0 0 0 6px rgba(240, 178, 58, .2);
+    animation: schedGlow 1.4s ease-in-out 3;
+  }
+  @keyframes schedGlow { 50% { box-shadow: 0 0 0 12px rgba(240, 178, 58, .35); } }
+  .sched-badge {
+    position: absolute; top: -14px; left: 50%; translate: -50% 0;
+    background: var(--rose); color: #fff;
+    padding: 5px 14px; border-radius: 99px;
+    font: 800 12px/1.2 var(--f-ui); letter-spacing: .1em; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .sched-note {
+    margin: 0; text-align: left;
+    background: #fff; border-left: 4px solid var(--rose); border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 15px; line-height: 1.5; color: var(--ink);
+  }
+  .sched-grid {
+    display: grid; grid-template-columns: auto repeat(var(--slots, 3), minmax(0, 1fr));
+    gap: 6px; align-items: center;
+    max-height: 330px; overflow-y: auto; padding-right: 2px;
+  }
+  .sched-grid .sh { font: 800 11px var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+  .sched-grid .day { font: 700 14px/1.2 var(--f-ui); text-align: left; padding-right: 4px; white-space: nowrap; }
+  .sched-grid .day small { display: block; font-weight: 600; font-size: 12px; color: var(--ink-soft); }
+  .slot {
+    font: 700 13px/1.2 var(--f-ui); color: var(--ink-soft);
+    background: #fff; border: 2px solid var(--rose-soft); border-radius: 10px;
+    padding: 9px 2px; cursor: pointer; min-width: 0;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .slot:hover { border-color: var(--rose); }
+  .slot:focus-visible { outline: 3px solid var(--gold); outline-offset: 1px; }
+  .slot[aria-pressed="true"] { background: var(--leaf); border-color: var(--leaf); color: #fff; }
+  .sched-count { margin: 0; font-weight: 800; font-size: 14px; color: var(--rose); }
+  .schedule input {
+    width: 100%; min-width: 0;
+    font: 600 16px/1.4 var(--f-ui); color: var(--ink);
+    padding: 11px 14px;
+    border: 2px solid var(--rose-soft); border-radius: 12px; background: #fff;
+  }
+  .schedule input:focus { outline: none; border-color: var(--rose); }
 
   .drop {
     width: min(220px, 100%); aspect-ratio: 4 / 5;
@@ -656,10 +708,15 @@
       <h2 class="title sm" id="wheel-title">Quay để chọn quà</h2>
       <div class="wheel-wrap"><div class="pointer"></div><div class="wheel" id="wheel"></div></div>
       <p class="sub" id="wheel-sub">Ô nào cũng là quà thật. Chắc vậy.</p>
-      <form class="free" id="gift-form" hidden>
-        <label class="gift-q" for="gift-day" id="gift-q"></label>
-        <input id="gift-day" name="gift-day" type="text" maxlength="80" autocomplete="off">
-        <div class="free-row"><button class="btn yes" type="submit">Gửi</button></div>
+      <form class="schedule" id="gift-form" hidden>
+        <span class="sched-badge">Quan trọng nha</span>
+        <h3 class="gift-q" id="gift-q"></h3>
+        <p class="sched-note" id="gift-note"></p>
+        <div class="sched-grid" id="sched-grid" role="group" aria-label="Chọn những buổi cậu rảnh"></div>
+        <p class="sched-count" id="sched-count">Chưa chọn buổi nào</p>
+        <label class="visually-hidden" for="gift-day">Ghi chú thêm</label>
+        <input id="gift-day" name="gift-day" type="text" maxlength="120" autocomplete="off">
+        <div class="free-row"><button class="btn yes" type="submit">Gửi lịch rảnh</button></div>
       </form>
       <button class="btn yes" id="spin" type="button">Quay</button>
     </section>
@@ -773,10 +830,14 @@ const CONFIG = {
       { land: "Quà đặc biệt", title: "Trúng phần quà đặc biệt! 🎁", sub: "Quà thật nha, các bạn nam sẽ mang tới tận tay cậu.", btn: "Nhận thêm lời chúc" }
     ],
     // Sau lượt quay cuối: hỏi ngày nhận quà, câu trả lời gửi về Google Sheet (cột "Hôm nào nhận quà").
+    // days = hiện bao nhiêu ngày (bắt đầu từ ngày mai), slots = các buổi trong ngày.
     giftDay: {
       q: "Hôm nào cậu nhận quà được zậyy?",
-      placeholder: "Ví dụ: sáng thứ Hai, giờ ra chơi",
-      ok: "Ghi nhận rồi nha! Hôm đó tụi mình mang quà tới 💝"
+      note: "📅 Tụi mình đang lên lịch một buổi trao quà cho cả lớp 66D. Cậu bấm chọn tất cả những buổi cậu rảnh nha, chọn càng nhiều thì càng dễ tìm được hôm cả lớp cùng đi được.",
+      days: 10,
+      slots: ["Sáng", "Chiều", "Tối"],
+      placeholder: "Ghi chú thêm (không bắt buộc), ví dụ: tối thứ 6 phải về sớm",
+      ok: "Ghi nhận lịch rảnh rồi nha! Tụi mình sẽ chốt một buổi cho cả lớp và báo cậu sau 💝"
     }
   },
 
@@ -791,10 +852,18 @@ const CONFIG = {
   // maxHitsPerBoy: mỗi bạn nam bị đập tối đa bao nhiêu lần, tính chung tất cả bạn nữ (đếm trên Google Sheet).
   whack: { dodges: 2, maxHitsPerBoy: 10 },
   boys: [
-    { name: "Bạn nam 1", photo: "photos/nam/ban-nam-1.webp", wish: "Chúc {ten} 20/10 thật xinh, thật vui, và qua môn nào cũng điểm A nha!" },
-    { name: "Bạn nam 2", photo: "photos/nam/ban-nam-2.webp", wish: "Chúc {ten} luôn cười tươi như ảnh lớp đầu năm. Cảm ơn vì đã làm 66D vui hơn." },
-    { name: "Bạn nam 3", photo: "photos/nam/ban-nam-3.webp", wish: "Chúc {ten} ngủ đủ giấc, deadline không dí, trà sữa không hết." },
-    { name: "Bạn nam 4", photo: "photos/nam/ban-nam-4.webp", wish: "20/10 vui vẻ nha {ten}! Có gì khó cứ gọi tụi mình." }
+    // Lời chúc dưới đây là câu mẫu, nhờ từng bạn nam tự viết lại câu của mình nha.
+    { name: "Duy", photo: "photos/nam/duy.webp", wish: "Chúc {ten} 20/10 thật xinh, thật vui, và qua môn nào cũng điểm A nha!" },
+    { name: "Hải", photo: "photos/nam/hai.webp", wish: "Chúc {ten} luôn cười tươi như ảnh lớp đầu năm. Cảm ơn vì đã làm 66D vui hơn." },
+    { name: "Hiếu", photo: "photos/nam/hieu.webp", wish: "Chúc {ten} ngủ đủ giấc, deadline không dí, trà sữa không bao giờ hết." },
+    { name: "Hùng", photo: "photos/nam/hung.webp", wish: "20/10 vui vẻ nha {ten}! Có gì khó cứ gọi tụi mình." },
+    { name: "Huy", photo: "photos/nam/huy.webp", wish: "Chúc {ten} một năm học thật nhẹ nhàng và nhiều kỉ niệm đẹp với 66D." },
+    { name: "Khôi", photo: "photos/nam/khoi.webp", wish: "Chúc {ten} luôn xinh, luôn vui, và luôn là chính mình." },
+    { name: "Long", photo: "photos/nam/long.webp", wish: "Chúc {ten} 20/10 được chiều hết cỡ, ăn gì cũng ngon mà không lo tăng cân." },
+    { name: "Mạnh", photo: "photos/nam/manh.webp", wish: "Chúc {ten} học đâu nhớ đó, thi đâu trúng tủ đó nha!" },
+    { name: "Minh", photo: "photos/nam/minh.webp", wish: "Cảm ơn {ten} đã là một phần của 66D. Chúc cậu 20/10 thật nhiều niềm vui." },
+    { name: "Quyết", photo: "photos/nam/quyet.webp", wish: "Chúc {ten} lúc nào cũng cười như mình trong ảnh này nè!" },
+    { name: "Tuấn", photo: "photos/nam/tuan.webp", wish: "Chúc {ten} 20/10 an yên, xinh đẹp và luôn được yêu thương." }
   ]
 };
 /* =========================================================== */
@@ -1429,25 +1498,76 @@ wheel.addEventListener("transitionend", e => {
     burst(80);
     // lượt cuối: hỏi hôm nào nhận quà rồi mới cho đi tiếp
     const gd = CONFIG.wheel.giftDay;
-    if (gd) {
-      $("gift-q").textContent = gd.q;
-      $("gift-day").placeholder = gd.placeholder || "";
-      $("gift-form").hidden = false;
-      $("spin").hidden = true;
-    }
+    if (gd) showSchedule(gd);
   }
   spinning = false;
 });
+
+/* bảng chọn lịch rảnh sau lượt quay cuối */
+const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const THU_FULL = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+function showSchedule(gd) {
+  const slots = gd.slots || ["Sáng", "Chiều", "Tối"];
+  const grid = $("sched-grid");
+  grid.style.setProperty("--slots", slots.length);
+  grid.innerHTML = "";
+  grid.append(document.createElement("span"));
+  slots.forEach(s => { const h = document.createElement("span"); h.className = "sh"; h.textContent = s; grid.append(h); });
+  const today = new Date();
+  for (let k = 1; k <= (gd.days || 10); k++) {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + k);
+    const label = `${THU[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
+    const day = document.createElement("span");
+    day.className = "day";
+    day.innerHTML = `${THU_FULL[d.getDay()]}<small>${d.getDate()}/${d.getMonth() + 1}</small>`;
+    grid.append(day);
+    slots.forEach(s => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "slot";
+      b.textContent = s;
+      b.dataset.day = label; b.dataset.slot = s;
+      b.setAttribute("aria-pressed", "false");
+      b.setAttribute("aria-label", `${THU_FULL[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}, buổi ${s.toLowerCase()}`);
+      b.addEventListener("click", () => {
+        b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");
+        const n = grid.querySelectorAll('.slot[aria-pressed="true"]').length;
+        $("sched-count").textContent = n ? `Đã chọn ${n} buổi` : "Chưa chọn buổi nào";
+      });
+      grid.append(b);
+    });
+  }
+  $("gift-q").textContent = gd.q;
+  $("gift-note").textContent = gd.note || "";
+  $("gift-day").placeholder = gd.placeholder || "";
+  $("gift-form").hidden = false;
+  document.querySelector("#s-wheel .wheel-wrap").hidden = true;   // giấu vòng quay cho bảng lịch nổi bật
+  $("spin").hidden = true;
+  setTimeout(() => $("gift-form").scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" }), 300);
+}
 $("gift-form").addEventListener("submit", e => {
   e.preventDefault();
-  const v = $("gift-day").value.trim();
-  if (!v) { $("wheel-sub").textContent = "Chọn một hôm đi mà, để tụi mình chuẩn bị quà."; shakeCard(); return; }
+  // gom các buổi đã chọn theo ngày: "T4 21/10: Sáng, Tối | T6 23/10: Chiều"
+  const byDay = new Map();
+  $("sched-grid").querySelectorAll('.slot[aria-pressed="true"]').forEach(b => {
+    if (!byDay.has(b.dataset.day)) byDay.set(b.dataset.day, []);
+    byDay.get(b.dataset.day).push(b.dataset.slot);
+  });
+  const note = $("gift-day").value.trim();
+  if (!byDay.size && !note) {
+    $("sched-count").textContent = "Chọn ít nhất một buổi nha, để tụi mình xếp lịch cho cả lớp.";
+    shakeCard();
+    return;
+  }
+  let v = [...byDay].map(([d, s]) => `${d}: ${s.join(", ")}`).join(" | ");
+  if (note) v += (v ? " | " : "") + "Ghi chú: " + note;
   state.giftDay = v;
   sendGiftDay(v);
   $("gift-form").hidden = true;
+  $("wheel-title").textContent = "Cảm ơn cậu nhiều!";
   $("wheel-sub").textContent = CONFIG.wheel.giftDay.ok;
   $("spin").hidden = false;
-  burst(40);
+  burst(60);
+  window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
 });
 
 /* ================== GIẢI ĐẶC BIỆT: ĐẬP CHUỘT ================== */
