@@ -91,31 +91,45 @@
   .scroll-cue:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   .scroll-cue, .intro-top { position: relative; z-index: 2; }
 
-  /* sticker các bạn nam ló ra từ mép dưới, ở màn đầu và cả lúc đang chơi */
-  #peek {
-    position: fixed; bottom: 0; z-index: 45;
-    transform: translateY(105%);
-    transition: transform .6s cubic-bezier(.3, 1.4, .5, 1);
+  /* sticker các bạn nam hiện ngẫu nhiên, nhiều cái cùng lúc.
+     .cut = ảnh đã tách nền, ló lên từ góc dưới; .face = ảnh mặt tròn, bật ra ở chỗ ngẫu nhiên */
+  #peeks .peek {
+    position: fixed; z-index: 45;
     pointer-events: none;
+    transition: transform .5s cubic-bezier(.3, 1.5, .5, 1), opacity .25s;
   }
-  #peek.right { right: 0; transform-origin: 100% 100%; }
-  #peek.left { left: 0; transform-origin: 0 100%; }
-  #peek.out { transform: translateY(var(--hide, 24%)) rotate(var(--tilt, -6deg)); pointer-events: auto; }
-  #peek.jump { transform: translateY(2%) rotate(0deg); }
-  body.focus #peek { --hide: 30%; }
-  #peek img {
-    height: clamp(190px, 36vh, 360px); width: auto; max-width: 58vw;
-    object-fit: contain; object-position: right bottom;
+  #peeks .peek.out { pointer-events: auto; }
+  .peek img {
     display: block; cursor: pointer;
     -webkit-user-select: none; user-select: none;
+  }
+  .peek.out img { animation: peekwig 1.4s ease-in-out infinite; }
+  @keyframes peekwig { 0%, 100% { rotate: 0deg; } 50% { rotate: 3deg; } }
+
+  #peeks .peek.cut { bottom: 0; transform: translateY(105%); }
+  #peeks .peek.cut.right { right: 0; transform-origin: 100% 100%; }
+  #peeks .peek.cut.left { left: 0; transform-origin: 0 100%; }
+  #peeks .peek.cut.out { transform: translateY(24%) rotate(var(--tilt, -6deg)); }
+  .peek.cut img {
+    height: clamp(190px, 36vh, 360px); width: auto; max-width: 58vw;
+    object-fit: contain; object-position: right bottom;
     filter: drop-shadow(4px 0 0 #fff) drop-shadow(-4px 0 0 #fff) drop-shadow(0 -4px 0 #fff) drop-shadow(0 4px 0 #fff) drop-shadow(0 10px 18px rgba(59, 29, 42, .35));
   }
-  body.focus #peek img { height: clamp(150px, 26vh, 280px); }
-  #peek.left img { transform: scaleX(-1); }
-  #peek.out img { animation: peekwig 1.6s ease-in-out infinite; }
-  @keyframes peekwig { 0%, 100% { rotate: 0deg; } 50% { rotate: 2.5deg; } }
+  .peek.cut.left img { transform: scaleX(-1); }
+
+  #peeks .peek.face { transform: scale(0) rotate(-30deg); }
+  #peeks .peek.face.out { transform: scale(1) rotate(var(--tilt, -6deg)); }
+  .peek.face img {
+    width: clamp(84px, 13vw, 140px); aspect-ratio: 1; max-width: 100%;
+    border-radius: 50%; object-fit: cover;
+    border: 5px solid #fff;
+    box-shadow: 0 10px 20px -8px rgba(59, 29, 42, .55);
+  }
+  #peeks .peek.jump { transform: scale(1.15) rotate(0deg); }
+  #peeks .peek.cut.jump { transform: translateY(2%) rotate(0deg); }
+
   .peek-bubble {
-    position: absolute; bottom: 90%; margin: 0; z-index: 2;   /* luôn nằm trên ảnh sticker */
+    position: absolute; bottom: 92%; margin: 0; z-index: 2;   /* luôn nằm trên ảnh sticker */
     max-width: 210px; width: max-content;
     background: var(--card); color: var(--ink);
     padding: 8px 14px; border-radius: 16px;
@@ -123,39 +137,43 @@
     box-shadow: var(--shadow);
     opacity: 0; transform: translateY(8px) scale(.85);
     transition: opacity .25s, transform .25s;
+    pointer-events: none;
   }
-  #peek.right .peek-bubble { right: 38%; border-bottom-right-radius: 4px; }
-  #peek.left .peek-bubble { left: 38%; border-bottom-left-radius: 4px; }
-  #peek.talk .peek-bubble { opacity: 1; transform: none; }
-  /* điện thoại, màn đầu: nút "Lướt xuống" chiếm đáy màn hình nên sticker bật lên ngay phía trên nó */
+  .peek.cut.right .peek-bubble { right: 38%; border-bottom-right-radius: 4px; }
+  .peek.cut.left .peek-bubble { left: 38%; border-bottom-left-radius: 4px; }
+  .peek.face .peek-bubble { left: 50%; translate: -50% 0; bottom: 100%; }
+  .peek.talk .peek-bubble { opacity: 1; transform: none; }
+
+  /* điện thoại, màn đầu: nút "Lướt xuống" chiếm đáy màn hình nên sticker góc bật lên ngay phía trên nó */
   @media (max-width: 600px) {
-    body:not(.focus) #peek {
+    body:not(.focus) #peeks .peek.cut {
       bottom: calc(env(safe-area-inset-bottom, 0px) + 132px);
       transform: scale(0) rotate(-25deg);
-      transition: transform .5s cubic-bezier(.3, 1.6, .5, 1);
     }
-    body:not(.focus) #peek.right { right: 10px; }
-    body:not(.focus) #peek.left { left: 10px; }
-    body:not(.focus) #peek.out { transform: scale(1) rotate(var(--tilt, -6deg)); }
-    body:not(.focus) #peek.jump { transform: scale(1.12) rotate(0deg); }
-    body:not(.focus) #peek img { height: 26vh; max-width: 46vw; }
-    body.focus #peek img { height: 22vh; max-width: 42vw; }
-    body.dim:not(.focus) #peek { transform: scale(0); }
+    body:not(.focus) #peeks .peek.cut.right { right: 10px; }
+    body:not(.focus) #peeks .peek.cut.left { left: 10px; }
+    body:not(.focus) #peeks .peek.cut.out { transform: scale(1) rotate(var(--tilt, -6deg)); }
+    body:not(.focus) #peeks .peek.cut.jump { transform: scale(1.12) rotate(0deg); }
+    body:not(.focus) .peek.cut img { height: 26vh; max-width: 46vw; }
+    body.focus .peek.cut img { height: 22vh; max-width: 42vw; }
   }
+
   /* lúc đang chơi: sticker ló lên từ sau mép trên tờ thiệp (nằm sau thiệp, thiệp che phần dưới) */
-  body.focus #peek {
-    position: absolute; right: auto; bottom: auto;
+  body.focus #peeks .peek,
+  body.focus #peeks .peek.cut {
+    position: absolute; right: auto; bottom: auto; left: auto;
     z-index: 1;
     transform: translateY(55%) rotate(0deg); opacity: 0;
-    transition: transform .55s cubic-bezier(.3, 1.4, .5, 1), opacity .25s;
+    transition: transform .5s cubic-bezier(.3, 1.4, .5, 1), opacity .25s;
   }
-  body.focus #peek.out { transform: translateY(0) rotate(var(--tilt, -6deg)); opacity: 1; }
-  body.focus #peek.jump { transform: translateY(-8%) rotate(0deg); opacity: 1; }
+  body.focus #peeks .peek.out { transform: translateY(0) rotate(var(--tilt, -6deg)); opacity: 1; }
+  body.focus #peeks .peek.jump { transform: translateY(-10%) rotate(0deg); opacity: 1; }
+  body.focus .peek.cut img { height: clamp(150px, 26vh, 280px); }
+  body.focus .peek.face img { width: clamp(78px, 11vw, 120px); }
   body.focus main { pointer-events: none; }
   body.focus .card { pointer-events: auto; }
   /* màn đầu: lướt xuống phần quà thì sticker trốn đi */
-  body.dim:not(.focus) #peek { transform: translateY(105%); pointer-events: none; }
-  @media (max-width: 600px) { body.dim:not(.focus) #peek { transform: scale(0); } }
+  body.dim:not(.focus) #peeks .peek { opacity: 0; pointer-events: none; }
   .scroll-cue small { font: 700 13px var(--f-ui); color: var(--ink-soft); }
   .scroll-cue .chev {
     width: 14px; height: 14px; margin-top: 2px;
@@ -625,10 +643,7 @@
   </button>
 </header>
 
-<div id="peek" class="right" aria-hidden="true">
-  <p class="peek-bubble" id="peek-say"></p>
-  <img id="peek-img" alt="" draggable="false">
-</div>
+<div id="peeks" aria-hidden="true"></div>
 
 <div id="lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh lớp" hidden>
   <img id="lb-img" alt="">
@@ -791,11 +806,13 @@ const CONFIG = {
     ["photos/lop-19.jpg", "Liên hoan lớp"]
   ],
   // Sticker các bạn nam (ảnh đã tách nền) ló ra ngẫu nhiên ở mép dưới, cả ở màn đầu lẫn lúc đang chơi.
+  // Ảnh mặt của các bạn trong trò đập chuột (boys) cũng tự bật ra ngẫu nhiên; faceStickers: false để tắt.
+  // peek: introMax/gameMax = tối đa bao nhiêu sticker cùng lúc, introEvery/gameEvery = cứ bao nhiêu ms (từ-đến) thì bật thêm một cái.
+  peek: { introMax: 4, gameMax: 3, introEvery: [500, 1100], gameEvery: [900, 1800] },
   stickers: [
     "photos/sticker-hoi-con-trai.webp",
     "photos/sticker-ban-nam-1.webp",
-    "photos/sticker-ban-nam-2.webp",
-    "photos/sticker-ban-nam-3.webp"
+    "photos/sticker-ban-nam-2.webp"
   ],
 
   // 3 ảnh to đặt giữa màn đầu: [trái, giữa, phải]. Ghi đúng đường dẫn như trong photos ở trên.
@@ -1017,72 +1034,103 @@ if ("IntersectionObserver" in window) {
   }, { threshold: 0.35 }).observe($("card"));
 }
 
-/* ---------- sticker các bạn nam ló ra ngẫu nhiên (màn đầu và cả lúc đang chơi) ---------- */
-const STICKERS = CONFIG.stickers || [];
-const PEEK_INTRO = ["Hello các ems 66D 🎀", "Lướt xuống nhận quà đi nè", "Chúc mừng 20/10!", "Bấm vào tụi mình thử xem", "Hội con trai có quà đó nha"];
-const PEEK_GAME = ["Cố lên!", "Làm tốt lắm 👏", "Sắp có quà rồi nè", "Tụi mình đang cổ vũ cậu", "Bình tĩnh, tự tin nha", "Đừng bấm nhầm nha 😆"];
-const peek = $("peek"), peekImg = $("peek-img");
-let peekSide = "right", peekT = 0, peekLast = -1, peekToken = 0;
-STICKERS.forEach(src => { const im = new Image(); im.src = src; });   // tải sẵn để ló ra là có ảnh ngay
+/* ---------- sticker các bạn nam hiện ngẫu nhiên, nhiều cái cùng lúc (màn đầu và cả lúc đang chơi) ---------- */
+// .cut = ảnh đã tách nền trong CONFIG.stickers (ló từ góc dưới); .face = ảnh mặt trong trò đập chuột (bật ra chỗ ngẫu nhiên)
+const STICKERS = (CONFIG.stickers || []).map(src => ({ src, kind: "cut" }))
+  .concat(CONFIG.faceStickers === false ? [] : (CONFIG.boys || []).filter(b => b.photo).map(b => ({ src: b.photo, kind: "face" })));
+const PEEK_INTRO = ["Hello các ems 66D 🎀", "Lướt xuống nhận quà đi nè", "Chúc mừng 20/10!", "Bấm vào tụi mình thử xem", "Hội con trai có quà đó nha", "Ủa ai xinh vậy?", "Có quà nè 🎁"];
+const PEEK_GAME = ["Cố lên!", "Làm tốt lắm 👏", "Sắp có quà rồi nè", "Tụi mình đang cổ vũ cậu", "Bình tĩnh, tự tin nha", "Đừng bấm nhầm nha 😆", "Hehe 😜"];
+const PK = Object.assign({ introMax: 4, gameMax: 3, introEvery: [500, 1100], gameEvery: [900, 1800] }, CONFIG.peek || {});
+const peeksBox = $("peeks");
+const livePeeks = new Set();
+let peekT = 0;
+STICKERS.forEach(s => { const im = new Image(); im.src = s.src; });   // tải sẵn để bật ra là có ảnh ngay
 const pickFrom = arr => arr[(Math.random() * arr.length) | 0];
-function peekCycle() {
+const randIn = ([a, b]) => a + Math.random() * (b - a);
+
+function peekTick() {
   clearTimeout(peekT);
-  if (!STICKERS.length) return;
   const inGame = document.body.classList.contains("focus");
-  // đang xem ảnh phóng to, hoặc đã lướt xuống phần quà nhưng chưa bắt đầu chơi: đợi lượt sau
-  if (!$("lightbox").hidden || (!inGame && document.body.classList.contains("dim"))) {
-    peekT = setTimeout(peekCycle, 3000);
-    return;
-  }
-  let k = (Math.random() * STICKERS.length) | 0;
-  if (STICKERS.length > 1 && k === peekLast) k = (k + 1) % STICKERS.length;
-  peekLast = k;
-  peekSide = Math.random() < .5 ? "right" : "left";
-  peekImg.src = STICKERS[k];
-  const my = ++peekToken;
-  const go = () => {
-    if (my !== peekToken) return;   // đã có lượt mới hơn thì bỏ lượt này
-    const inGame = document.body.classList.contains("focus");
-    peek.className = peekSide;
-    peek.style.setProperty("--tilt", (peekSide === "right" ? -1 : 1) * (4 + Math.random() * 5) + "deg");
-    if (inGame) placeOnCard(); else peek.style.left = peek.style.top = "";
-    void peek.offsetWidth;
-    peek.classList.add("out");
-    $("peek-say").textContent = pickFrom(inGame ? PEEK_GAME : PEEK_INTRO);
-    peekT = setTimeout(() => {
-      peek.classList.add("talk");
-      peekT = setTimeout(peekHide, 3400);
-    }, 700);
-  };
-  // đợi ảnh sẵn sàng, nhưng không quá 1,5 giây
-  Promise.race([peekImg.decode ? peekImg.decode() : Promise.resolve(), sleep(1500)]).then(go, go);
+  const paused = !$("lightbox").hidden || (!inGame && document.body.classList.contains("dim"));
+  if (!paused && STICKERS.length && livePeeks.size < (inGame ? PK.gameMax : PK.introMax)) spawnPeek(inGame);
+  peekT = setTimeout(peekTick, randIn(inGame ? PK.gameEvery : PK.introEvery));
 }
-// đặt sticker ngay sau mép trên tờ thiệp, lệch về góc trái hoặc phải; 40% phía dưới nằm khuất sau thiệp
-function placeOnCard() {
+
+function spawnPeek(inGame) {
+  const busy = new Set([...livePeeks].map(p => p.dataset.src));
+  const cutSides = new Set([...livePeeks].filter(p => p.classList.contains("cut")).map(p => p.dataset.side));
+  // màn đầu chỉ có 2 góc cho sticker tách nền; góc nào đang có rồi thì chọn ảnh mặt
+  let pool = STICKERS.filter(s => !busy.has(s.src) && !(s.kind === "cut" && !inGame && cutSides.size >= 2));
+  if (!pool.length) return;
+  const st = pickFrom(pool);
+  const el = document.createElement("div");
+  const side = st.kind === "cut" && !inGame ? (cutSides.has("right") ? "left" : cutSides.has("left") ? "right" : pickFrom(["left", "right"])) : pickFrom(["left", "right"]);
+  el.className = `peek ${st.kind} ${side}`;
+  el.dataset.src = st.src; el.dataset.side = side;
+  el.setAttribute("aria-hidden", "true");
+  el.style.setProperty("--tilt", (side === "right" ? -1 : 1) * (4 + Math.random() * 8) + "deg");
+  const bubble = document.createElement("p"); bubble.className = "peek-bubble";
+  bubble.textContent = pickFrom(inGame ? PEEK_GAME : PEEK_INTRO);
+  const img = document.createElement("img"); img.alt = ""; img.draggable = false; img.src = st.src;
+  el.append(bubble, img);
+  peeksBox.appendChild(el);
+  livePeeks.add(el);
+
+  const go = () => {
+    if (!el.isConnected) return;
+    if (inGame) placeOnCard(el, img);
+    else if (st.kind === "face") placeFace(el, img);
+    void el.offsetWidth;
+    el.classList.add("out");
+    if (Math.random() < (inGame ? .45 : .4)) setTimeout(() => el.classList.add("talk"), 450);
+    el._t = setTimeout(() => hidePeek(el), (inGame ? 2400 : 2200) + Math.random() * 1600);
+  };
+  Promise.race([img.decode ? img.decode() : Promise.resolve(), sleep(1200)]).then(go, go);
+
+  img.addEventListener("click", e => {
+    clearTimeout(el._t);
+    el.classList.add("out", "jump", "talk");
+    bubble.textContent = "Chúc các bạn nữ 66D 20/10 thật vui! 💗";
+    sparkle(e.clientX, e.clientY, 18, 140);
+    burst(24);
+    el._t = setTimeout(() => hidePeek(el), 2600);
+  });
+}
+function hidePeek(el) {
+  el.classList.remove("out", "talk", "jump");
+  setTimeout(() => { el.remove(); livePeeks.delete(el); }, 650);
+}
+// ảnh mặt ở màn đầu: chỗ ngẫu nhiên, tránh thanh trên cùng, nút "Lướt xuống" và các sticker khác
+function placeFace(el, img) {
+  const s = img.offsetWidth || 110;
+  const others = [...livePeeks].filter(p => p !== el && p.classList.contains("face") && p.style.left)
+    .map(p => ({ x: parseFloat(p.style.left), y: parseFloat(p.style.top) }));
+  let x = 0, y = 0;
+  for (let k = 0; k < 12; k++) {
+    x = 10 + Math.random() * Math.max(1, innerWidth - s - 20);
+    y = 80 + Math.random() * Math.max(1, innerHeight - s - 250);
+    if (others.every(o => Math.hypot(o.x - x, o.y - y) > s * 1.2)) break;
+  }
+  el.style.left = x + "px"; el.style.top = y + "px";
+}
+// lúc đang chơi: đặt sticker ngay sau mép trên tờ thiệp, chỗ chưa có sticker khác; ~40% phía dưới khuất sau thiệp
+function placeOnCard(el, img) {
   const r = $("card").getBoundingClientRect();
-  const w = peekImg.offsetWidth || 150, h = peekImg.offsetHeight || 200;
-  const at = peekSide === "right" ? .72 + Math.random() * .16 : .12 + Math.random() * .16;
+  const w = img.offsetWidth || 120, h = img.offsetHeight || 150;
+  const taken = [...livePeeks].filter(p => p !== el && p.dataset.at).map(p => +p.dataset.at);
+  let at = .5;
+  for (let k = 0; k < 12; k++) {
+    at = .1 + Math.random() * .8;
+    if (taken.every(t => Math.abs(t - at) > .26)) break;
+  }
+  el.dataset.at = at;
   let x = r.left + r.width * at - w / 2;
   x = Math.max(4, Math.min(innerWidth - w - 4, x));
   const y = Math.max(scrollY - h * .3, r.top + scrollY - h * .6);
-  peek.style.left = (x + scrollX) + "px";
-  peek.style.top = y + "px";
+  el.style.left = (x + scrollX) + "px";
+  el.style.top = y + "px";
 }
-function peekHide() {
-  peek.classList.remove("talk", "out", "jump");
-  const inGame = document.body.classList.contains("focus");
-  peekT = setTimeout(peekCycle, inGame ? 5000 + Math.random() * 4000 : 2000 + Math.random() * 2000);
-}
-peek.addEventListener("click", e => {
-  peekToken++;
-  clearTimeout(peekT);
-  peek.classList.add("out", "jump", "talk");
-  $("peek-say").textContent = "Chúc các bạn nữ 66D 20/10 thật vui! 💗";
-  sparkle(e.clientX, e.clientY, 18, 140);
-  burst(30);
-  peekT = setTimeout(peekHide, 2800);
-});
-peekT = setTimeout(peekCycle, 1200);
+peekT = setTimeout(peekTick, 900);
 
 /* ---------- xem ảnh phóng to ---------- */
 const lb = $("lightbox"), lbImg = $("lb-img");
