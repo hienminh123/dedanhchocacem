@@ -89,6 +89,56 @@
     -webkit-tap-highlight-color: transparent;
   }
   .scroll-cue:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  .scroll-cue, .intro-top { position: relative; z-index: 2; }
+
+  /* sticker hội con trai ló ra từ góc dưới */
+  #intro #peek {
+    position: fixed; bottom: 0; z-index: 1;
+    width: clamp(140px, 36vw, 300px);
+    transform: translateY(105%);
+    transition: transform .6s cubic-bezier(.3, 1.4, .5, 1);
+    pointer-events: none;
+  }
+  #peek.right { right: 0; transform-origin: 100% 100%; }
+  #peek.left { left: 0; transform-origin: 0 100%; }
+  #intro #peek.out { transform: translateY(26%) rotate(var(--tilt, -6deg)); pointer-events: auto; }
+  #intro #peek.jump { transform: translateY(3%) rotate(0deg); }
+  body.dim #intro #peek { transform: translateY(105%); pointer-events: none; }
+  #peek img {
+    width: 100%; display: block; cursor: pointer;
+    -webkit-user-select: none; user-select: none;
+    filter: drop-shadow(4px 0 0 #fff) drop-shadow(-4px 0 0 #fff) drop-shadow(0 -4px 0 #fff) drop-shadow(0 4px 0 #fff) drop-shadow(0 10px 18px rgba(59, 29, 42, .35));
+  }
+  #peek.left img { transform: scaleX(-1); }
+  #peek.out img { animation: peekwig 1.6s ease-in-out infinite; }
+  @keyframes peekwig { 0%, 100% { rotate: 0deg; } 50% { rotate: 2.5deg; } }
+  .peek-bubble {
+    position: absolute; bottom: 82%; margin: 0;
+    max-width: 210px; width: max-content;
+    background: var(--card); color: var(--ink);
+    padding: 8px 14px; border-radius: 16px;
+    font: 19px/1.25 var(--f-hand);
+    box-shadow: var(--shadow);
+    opacity: 0; transform: translateY(8px) scale(.85);
+    transition: opacity .25s, transform .25s;
+  }
+  /* điện thoại: nút "Lướt xuống" chiếm đáy màn hình nên sticker bật lên ngay phía trên nó */
+  @media (max-width: 600px) {
+    #intro #peek {
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 132px);
+      width: 44vw;
+      transform: scale(0) rotate(-25deg);
+      transition: transform .5s cubic-bezier(.3, 1.6, .5, 1);
+    }
+    #peek.right { right: 10px; }
+    #peek.left { left: 10px; }
+    #intro #peek.out { transform: scale(1) rotate(var(--tilt, -6deg)); }
+    #intro #peek.jump { transform: scale(1.12) rotate(0deg); }
+    body.dim #intro #peek { transform: scale(0); }
+  }
+  #peek.right .peek-bubble { right: 38%; border-bottom-right-radius: 4px; }
+  #peek.left .peek-bubble { left: 38%; border-bottom-left-radius: 4px; }
+  #peek.talk .peek-bubble { opacity: 1; transform: none; }
   .scroll-cue small { font: 700 13px var(--f-ui); color: var(--ink-soft); }
   .scroll-cue .chev {
     width: 14px; height: 14px; margin-top: 2px;
@@ -497,6 +547,10 @@
     <p class="intro-tag">66D · 20.10.2026</p>
     <button class="see-all" id="see-all" type="button">Xem hết ảnh lớp ›</button>
   </div>
+  <div id="peek" class="right" aria-hidden="true">
+    <p class="peek-bubble" id="peek-say"></p>
+    <img src="photos/sticker-hoi-con-trai.webp" alt="" draggable="false">
+  </div>
   <button class="scroll-cue" id="scroll-cue" type="button">
     Lướt xuống để nhận quà
     <small>Có quà cho các bạn nữ 66D</small>
@@ -842,6 +896,38 @@ if ("IntersectionObserver" in window) {
     }
   }, { threshold: 0.35 }).observe($("card"));
 }
+
+/* ---------- sticker hội con trai ló ra ở màn đầu ---------- */
+const PEEK_LINES = ["Hello các ems 66D 🎀", "Lướt xuống nhận quà đi nè", "Chúc mừng 20/10!", "Bấm vào tụi mình thử xem", "Hội con trai có quà đó nha"];
+const peek = $("peek");
+let peekSide = "right", peekT = 0, peekLine = 0;
+function peekCycle() {
+  clearTimeout(peekT);
+  if ($("intro").hidden) return;
+  peek.className = peekSide;
+  peek.style.setProperty("--tilt", peekSide === "right" ? "-6deg" : "6deg");
+  void peek.offsetWidth;
+  peek.classList.add("out");
+  $("peek-say").textContent = PEEK_LINES[peekLine++ % PEEK_LINES.length];
+  peekT = setTimeout(() => {
+    peek.classList.add("talk");
+    peekT = setTimeout(peekHide, 3600);
+  }, 700);
+}
+function peekHide() {
+  peek.classList.remove("talk", "out", "jump");
+  peekSide = peekSide === "right" ? "left" : "right";
+  peekT = setTimeout(peekCycle, 5000 + Math.random() * 4000);
+}
+peek.addEventListener("click", e => {
+  clearTimeout(peekT);
+  peek.classList.add("out", "jump", "talk");
+  $("peek-say").textContent = "Chúc các bạn nữ 66D 20/10 thật vui! 💗";
+  sparkle(e.clientX, e.clientY, 18, 140);
+  burst(30);
+  peekT = setTimeout(peekHide, 2800);
+});
+peekT = setTimeout(peekCycle, 2200);
 
 /* ---------- xem ảnh phóng to ---------- */
 const lb = $("lightbox"), lbImg = $("lb-img");
