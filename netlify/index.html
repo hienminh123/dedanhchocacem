@@ -63,6 +63,8 @@
     overflow: hidden;
   }
   .pola .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pola.photo { width: clamp(160px, 27vw, 290px); }
+  .pola.photo .pic { aspect-ratio: 4 / 3; }
   .pola .cap {
     font-family: var(--f-hand);
     font-size: clamp(13px, 1.8vw, 19px);
@@ -410,8 +412,25 @@ const CONFIG = {
   // Ảnh lớp cho gallery nền. Bỏ ảnh vào thư mục photos/ cạnh file này rồi liệt kê ở đây.
   // Mỗi dòng là "đường dẫn" hoặc ["đường dẫn", "chú thích dưới ảnh"].
   photos: [
-    // ["photos/1.jpg", "Buổi đầu nhập học"],
-    // "photos/2.jpg",
+    ["photos/lop-01.jpg", "Cả lớp 66D"],
+    ["photos/lop-02.jpg", "Cả lớp 66D"],
+    ["photos/lop-03.jpg", "Học quân sự"],
+    ["photos/lop-04.jpg", "Học quân sự"],
+    ["photos/lop-05.jpg", "Học quân sự"],
+    ["photos/lop-06.jpg", "Học quân sự"],
+    ["photos/lop-07.jpg", "Học quân sự"],
+    ["photos/lop-08.jpg", "Đại gia đình 66D"],
+    ["photos/lop-09.jpg", "Đại gia đình 66D"],
+    ["photos/lop-10.jpg", "Hội con trai"],
+    ["photos/lop-11.jpg", "Hội con gái"],
+    ["photos/lop-12.jpg", "Đi ăn tối"],
+    ["photos/lop-13.jpg", "Hội con trai"],
+    ["photos/lop-14.jpg", "Hội con trai"],
+    ["photos/lop-15.jpg", "Tạo dáng"],
+    ["photos/lop-16.jpg", "Đi chơi cả lớp"],
+    ["photos/lop-17.jpg", "Đi chơi cả lớp"],
+    ["photos/lop-18.jpg", "Selfie 66D"],
+    ["photos/lop-19.jpg", "Liên hoan lớp"]
   ],
 
   // Câu hỏi về lớp. correct = vị trí đáp án đúng (0 = A, 1 = B, ...), "all" = ý nào cũng đúng.
@@ -470,14 +489,14 @@ function buildCollage() {
   const box = $("collage");
   box.innerHTML = "";
   const w = innerWidth, h = innerHeight;
-  const cell = Math.max(132, Math.min(220, w * 0.21));
-  const cols = Math.ceil(w / cell) + 1, rows = Math.ceil(h / (cell * 1.15)) + 1;
+  const cell = PHOTOS.length ? Math.max(150, Math.min(260, w * 0.24)) : Math.max(132, Math.min(220, w * 0.21));
+  const cols = Math.ceil(w / cell) + 1, rows = Math.ceil(h / (cell * (PHOTOS.length ? 0.9 : 1.15))) + 1;
   let i = 0;
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++, i++) {
     const p = document.createElement("div");
-    p.className = "pola";
+    p.className = PHOTOS.length ? "pola photo" : "pola";
     p.style.left = (c * cell - cell * 0.35 + (Math.random() - .5) * cell * 0.35) + "px";
-    p.style.top = (r * cell * 1.15 - cell * 0.4 + (Math.random() - .5) * cell * 0.3) + "px";
+    p.style.top = (r * cell * (PHOTOS.length ? 0.9 : 1.15) - cell * 0.4 + (Math.random() - .5) * cell * 0.3) + "px";
     p.style.transform = `rotate(${(Math.random() * 14 - 7).toFixed(1)}deg)`;
     p.style.zIndex = Math.floor(Math.random() * 5);
     const pic = document.createElement("div");

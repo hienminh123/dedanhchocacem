@@ -1,0 +1,5 @@
+# Chỉ đưa thư mục netlify/ lên web; mấy thứ dưới đây để ở máy thôi
+anh-goc/
+*.zip
+qua-20-10.html
+.claude/

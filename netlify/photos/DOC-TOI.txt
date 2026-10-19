@@ -1,1 +1,0 @@
-Bo anh lop vao thu muc nay (vd 1.jpg, 2.jpg...) roi liet ke trong CONFIG.photos o index.html.
