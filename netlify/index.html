@@ -435,7 +435,7 @@
     <section class="stage" id="s-ask">
       <p class="eyebrow">20 · 10 · 2026</p>
       <h1 class="title" id="ask-title">Để dành cho (các) ems 66D</h1>
-      <p class="sub" id="ask-sub">Có một món quà 20/10 đang chờ em nhận.</p>
+      <p class="sub" id="ask-sub">Có một món quà 20/10 đang chờ cậu nhận.</p>
       <div class="choices">
         <button class="btn yes" id="ask-yes" type="button">Nhận</button>
         <button class="btn must" id="ask-must" type="button">Phải nhận</button>
@@ -529,7 +529,7 @@ const CONFIG = {
   // Để trống "" thì không gửi gì cả.
   sheetUrl: "https://script.google.com/macros/s/AKfycbwI7WFHIv7DJcG3ynwH3HfNHpdBjbe-0FPEocplz1fEdzAv_WlPAoDZkqXOcWBTDsCWGw/exec",
   instagram: "lop66d",                 // tên IG của lớp, không cần @
-  openTitle: "Để dành cho (các) ems 66D",    // tiêu đề màn đầu (link có ?ten=Lan sẽ thành "Dành cho em Lan")
+  openTitle: "Để dành cho (các) ems 66D",    // tiêu đề màn đầu (link có ?ten=Lan sẽ thành "Để dành cho cậu Lan")
 
   // Ảnh lớp cho gallery nền. Bỏ ảnh vào thư mục photos/ cạnh file này rồi liệt kê ở đây.
   // Mỗi dòng là "đường dẫn" hoặc ["đường dẫn", "chú thích dưới ảnh"].
@@ -588,7 +588,7 @@ const CONFIG = {
     ]
   },
 
-  // Lời chúc in trên thiệp. {ten} sẽ được thay bằng tên em nhập.
+  // Lời chúc in trên thiệp. {ten} sẽ được thay bằng tên cậu ấy nhập.
   wish: "Chúc {ten} 20/10 luôn xinh, luôn vui, deadline nào cũng kịp và lúc nào cũng có người chiều.",
   signature: "Từ các bạn nam 66D"
 };
@@ -606,14 +606,14 @@ try {
   if (t && t.trim()) state.name = cap(t.trim().slice(0, 24));
 } catch (e) {}
 
-$("ask-title").textContent = state.name ? `Dành cho em ${state.name}` : CONFIG.openTitle;
+$("ask-title").textContent = state.name ? `Để dành cho cậu ${state.name}` : CONFIG.openTitle;
 $("ig-handle").textContent = "@" + IG;
 $("open-ig").href = "https://instagram.com/" + encodeURIComponent(IG);
 document.title = "Quà 20/10 · " + CONFIG.className;
 
 /* ---------- gallery nền ---------- */
 const ITEMS = [
-  ["💐", "Hoa cho em"], ["🧋", "Trà sữa 100% đường"], ["🧸", "Gấu bông to bằng người"],
+  ["💐", "Hoa cho cậu"], ["🧋", "Trà sữa 100% đường"], ["🧸", "Gấu bông to bằng người"],
   ["🎂", "Bánh kem"], ["💄", "Son màu đỏ"], ["💌", "Thiệp viết tay"], ["🍫", "Socola"],
   ["🌹", "Một bông hồng"], ["📒", "Vở chép bài hộ"], ["🎀", "Nơ buộc tóc"], ["👘", "Áo dài"],
   ["🍰", "Bánh ngọt"], ["🌷", "Hoa tulip"], ["☕", "Cà phê sáng"], ["🍓", "Dâu tây"], ["🎁", "Quà bí mật"]
