@@ -115,7 +115,7 @@
   #peek.out img { animation: peekwig 1.6s ease-in-out infinite; }
   @keyframes peekwig { 0%, 100% { rotate: 0deg; } 50% { rotate: 2.5deg; } }
   .peek-bubble {
-    position: absolute; bottom: 82%; margin: 0;
+    position: absolute; bottom: 90%; margin: 0; z-index: 2;   /* luôn nằm trên ảnh sticker */
     max-width: 210px; width: max-content;
     background: var(--card); color: var(--ink);
     padding: 8px 14px; border-radius: 16px;
