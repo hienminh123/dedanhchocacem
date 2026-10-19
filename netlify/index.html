@@ -45,7 +45,80 @@
 
   /* ---------- gallery nền ---------- */
   #collage { position: fixed; inset: 0; overflow: hidden; z-index: 0; transition: opacity .6s, filter .6s; }
-  body.focus #collage { opacity: .45; filter: blur(2px) saturate(.85); }
+  body.dim #collage { opacity: .7; filter: saturate(.9); }
+  body.focus #collage { opacity: .45; filter: blur(2px) saturate(.85); pointer-events: none; }
+  .pola.photo { cursor: zoom-in; }
+
+  /* ---------- màn đầu: full ảnh lớp ---------- */
+  #intro {
+    position: relative; z-index: 1;
+    height: 100vh; height: 100svh; min-height: 420px;
+    display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+    padding-block: max(18px, env(safe-area-inset-top, 0px)) max(22px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    pointer-events: none;
+  }
+  #intro > * { pointer-events: auto; }
+  .intro-tag {
+    margin: 0;
+    background: var(--card); color: var(--rose);
+    padding: 9px 18px; border-radius: 99px;
+    font: 800 12px/1.2 var(--f-ui); letter-spacing: .14em; text-transform: uppercase;
+    box-shadow: var(--shadow);
+  }
+  .intro-tag span { color: var(--ink-soft); letter-spacing: .04em; text-transform: none; font-weight: 700; }
+  .scroll-cue {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: var(--card); color: var(--ink);
+    border: 0; border-radius: 20px;
+    padding: 14px 26px 12px;
+    font: 400 22px/1.3 var(--f-display);
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .scroll-cue:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  .scroll-cue small { font: 700 13px var(--f-ui); color: var(--ink-soft); }
+  .scroll-cue .chev {
+    width: 14px; height: 14px; margin-top: 2px;
+    border-right: 3px solid var(--rose); border-bottom: 3px solid var(--rose);
+    transform: rotate(45deg);
+    animation: bob 1.4s ease-in-out infinite;
+  }
+  @keyframes bob { 50% { translate: 0 6px; } }
+  .card.enter { animation: rise .6s ease-out; }
+  @keyframes rise { from { translate: 0 46px; opacity: .5; } to { translate: 0 0; opacity: 1; } }
+
+  /* ---------- xem ảnh phóng to ---------- */
+  #lightbox { position: fixed; inset: 0; z-index: 70; background: rgba(29, 15, 43, 0); transition: background .35s; }
+  #lightbox.on { background: rgba(29, 15, 43, .9); }
+  #lb-img {
+    position: fixed; display: block; max-width: none;
+    object-fit: cover; background: #fff;
+    border: 8px solid #fff;
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .7);
+    transition: left .45s cubic-bezier(.2, .8, .2, 1), top .45s cubic-bezier(.2, .8, .2, 1), width .45s cubic-bezier(.2, .8, .2, 1), height .45s cubic-bezier(.2, .8, .2, 1);
+  }
+  #lb-cap {
+    position: fixed; left: 16px; right: 16px; bottom: max(22px, env(safe-area-inset-bottom, 0px));
+    margin: 0; text-align: center; color: #fff;
+    font: 24px/1.3 var(--f-hand);
+    opacity: 0; transition: opacity .3s .2s;
+  }
+  #lightbox.on #lb-cap { opacity: 1; }
+  .lb-btn {
+    position: fixed; z-index: 2;
+    width: 48px; height: 48px; border-radius: 50%;
+    border: 0; background: rgba(255, 255, 255, .16); color: #fff;
+    font: 400 30px/1 var(--f-ui); cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .lb-btn:hover { background: rgba(255, 255, 255, .3); }
+  .lb-btn:focus-visible { outline: 3px solid var(--gold); }
+  #lb-close { top: max(16px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); }
+  #lb-prev { left: max(12px, env(safe-area-inset-left, 0px)); top: 50%; translate: 0 -50%; }
+  #lb-next { right: max(12px, env(safe-area-inset-right, 0px)); top: 50%; translate: 0 -50%; }
   .pola {
     position: absolute;
     width: clamp(124px, 21vw, 214px);
@@ -321,7 +394,24 @@
 <div id="collage" aria-hidden="true"></div>
 <canvas id="fx" aria-hidden="true"></canvas>
 
-<main>
+<header id="intro">
+  <p class="intro-tag">66D · 20.10.2026 <span>· chạm vào ảnh để xem</span></p>
+  <button class="scroll-cue" id="scroll-cue" type="button">
+    Lướt xuống để nhận quà
+    <small>Có quà cho các bạn nữ 66D</small>
+    <span class="chev" aria-hidden="true"></span>
+  </button>
+</header>
+
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh lớp" hidden>
+  <img id="lb-img" alt="">
+  <p id="lb-cap"></p>
+  <button class="lb-btn" id="lb-close" type="button" aria-label="Đóng">×</button>
+  <button class="lb-btn" id="lb-prev" type="button" aria-label="Ảnh trước">‹</button>
+  <button class="lb-btn" id="lb-next" type="button" aria-label="Ảnh sau">›</button>
+</div>
+
+<main id="main">
   <div class="card" id="card">
 
     <!-- Mở đầu -->
@@ -485,10 +575,13 @@ const ITEMS = [
 ];
 const TINTS = ["#fde2e8", "#fff1d6", "#e3f2e6", "#e9e3f7", "#fbe0d4", "#dff0f5"];
 const PHOTOS = CONFIG.photos.map(p => Array.isArray(p) ? p : [p, CONFIG.className]);
+let builtW = 0;
 function buildCollage() {
   const box = $("collage");
   box.innerHTML = "";
-  const w = innerWidth, h = innerHeight;
+  // phủ cả phần thanh địa chỉ trên điện thoại khi nó ẩn/hiện lúc cuộn
+  const w = innerWidth, h = Math.max(innerHeight, screen.height || 0);
+  builtW = w;
   const cell = PHOTOS.length ? Math.max(150, Math.min(260, w * 0.24)) : Math.max(132, Math.min(220, w * 0.21));
   const cols = Math.ceil(w / cell) + 1, rows = Math.ceil(h / (cell * (PHOTOS.length ? 0.9 : 1.15))) + 1;
   let i = 0;
@@ -505,7 +598,9 @@ function buildCollage() {
     const capEl = document.createElement("div");
     capEl.className = "cap";
     if (PHOTOS.length) {
-      const [src, label] = PHOTOS[(i * 5 + r) % PHOTOS.length];
+      const idx = (i * 5 + r) % PHOTOS.length;
+      const [src, label] = PHOTOS[idx];
+      p.dataset.idx = idx;
       const img = document.createElement("img");
       img.src = src; img.alt = ""; img.loading = "lazy";
       pic.appendChild(img);
@@ -520,12 +615,104 @@ function buildCollage() {
   }
 }
 buildCollage();
-let rT; addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(buildCollage, 250); });
+// chỉ xếp lại khi đổi chiều ngang (xoay máy), không xếp lại khi thanh địa chỉ co giãn lúc cuộn
+let rT; addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(() => { if (Math.abs(innerWidth - builtW) > 40) buildCollage(); }, 250); });
+
+/* ---------- màn đầu: lướt xuống ---------- */
+$("scroll-cue").addEventListener("click", () => $("main").scrollIntoView({ behavior: reduced ? "auto" : "smooth" }));
+let entered = false;
+if ("IntersectionObserver" in window) {
+  new IntersectionObserver(([e]) => {
+    document.body.classList.toggle("dim", e.intersectionRatio < 0.5);
+  }, { threshold: [0, 0.5, 1] }).observe($("intro"));
+  new IntersectionObserver(([e]) => {
+    if (e.isIntersecting && !entered && !$("intro").hidden) {
+      entered = true;
+      $("card").classList.add("enter");
+    }
+  }, { threshold: 0.35 }).observe($("card"));
+}
+
+/* ---------- xem ảnh phóng to ---------- */
+const lb = $("lightbox"), lbImg = $("lb-img");
+let lbIdx = 0, lbFrom = null;
+const bigSrc = src => src.replace(/([^/]+)$/, "lon/$1");
+function lbTarget(ratio) {
+  const side = innerWidth > 700 ? 80 : 16;
+  const maxW = innerWidth - side * 2, maxH = innerHeight - 150;
+  let w = maxW, h = w / ratio;
+  if (h > maxH) { h = maxH; w = h * ratio; }
+  return { left: (innerWidth - w) / 2, top: (innerHeight - h) / 2 - 20, width: w, height: h };
+}
+function placeLb(r) {
+  lbImg.style.left = r.left + "px"; lbImg.style.top = r.top + "px";
+  lbImg.style.width = r.width + "px"; lbImg.style.height = r.height + "px";
+}
+function setLbPhoto(idx, smallImg) {
+  lbIdx = (idx + PHOTOS.length) % PHOTOS.length;
+  const [src, label] = PHOTOS[lbIdx];
+  $("lb-cap").textContent = label;
+  lbImg.src = src;
+  const big = new Image();
+  big.onload = () => { if (PHOTOS[lbIdx][0] === src) lbImg.src = big.src; };
+  big.src = bigSrc(src);
+  const ratio = smallImg && smallImg.naturalWidth ? smallImg.naturalWidth / smallImg.naturalHeight : 4 / 3;
+  return ratio;
+}
+function openLb(pola) {
+  const pic = pola.querySelector(".pic"), small = pic.querySelector("img");
+  lbFrom = pic;
+  const ratio = setLbPhoto(+pola.dataset.idx, small);
+  lbImg.style.transition = "none";
+  placeLb(pic.getBoundingClientRect());
+  lb.hidden = false;
+  void lbImg.offsetWidth;
+  lbImg.style.transition = "";
+  lb.classList.add("on");
+  placeLb(lbTarget(ratio));
+  sparkle(innerWidth / 2, innerHeight / 2, 14, 120);
+  $("lb-close").focus({ preventScroll: true });
+}
+function stepLb(d) {
+  const probe = new Image();
+  probe.onload = () => placeLb(lbTarget(probe.naturalWidth / probe.naturalHeight));
+  setLbPhoto(lbIdx + d);
+  probe.src = PHOTOS[lbIdx][0];
+  lbFrom = null;
+}
+function closeLb() {
+  lb.classList.remove("on");
+  if (lbFrom && lbFrom.isConnected) placeLb(lbFrom.getBoundingClientRect());
+  setTimeout(() => { lb.hidden = true; }, reduced ? 0 : 420);
+}
+$("collage").addEventListener("click", e => {
+  const pola = e.target.closest(".pola.photo");
+  if (pola && !document.body.classList.contains("focus")) openLb(pola);
+});
+$("lb-close").addEventListener("click", closeLb);
+$("lb-prev").addEventListener("click", () => stepLb(-1));
+$("lb-next").addEventListener("click", () => stepLb(1));
+lb.addEventListener("click", e => { if (e.target === lb) closeLb(); });
+addEventListener("keydown", e => {
+  if (lb.hidden) return;
+  if (e.key === "Escape") closeLb();
+  if (e.key === "ArrowLeft") stepLb(-1);
+  if (e.key === "ArrowRight") stepLb(1);
+});
+let swipeX = null;
+lb.addEventListener("touchstart", e => { swipeX = e.touches[0].clientX; }, { passive: true });
+lb.addEventListener("touchend", e => {
+  if (swipeX === null) return;
+  const dx = e.changedTouches[0].clientX - swipeX;
+  if (Math.abs(dx) > 50) stepLb(dx < 0 ? 1 : -1);
+  swipeX = null;
+});
 
 /* ---------- chuyển vòng ---------- */
 function show(id) {
   document.querySelectorAll("#card > .stage").forEach(s => s.hidden = s.id !== id);
   document.body.classList.toggle("focus", id !== "s-ask");
+  if (id !== "s-ask") $("intro").hidden = true;
   $("card").classList.toggle("wide", id === "s-final");
   window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
 }
@@ -922,6 +1109,44 @@ function burst(n) {
   });
   if (!raf) raf = requestAnimationFrame(tick);
 }
+/* lấp lánh theo chuột / ngón tay */
+const SPARK_COLORS = ["#fff6c4", "#ffd54f", "#ffffff", "#ffb3cf", "#f0b23a"];
+function sparkle(x, y, n = 2, spread = 10) {
+  if (reduced) return;
+  for (let k = 0; k < n; k++) {
+    const ang = Math.random() * 6.28, sp = spread > 10 ? Math.random() * 3 + 1 : Math.random() * .8;
+    parts.push({
+      spark: true,
+      x: x + (Math.random() - .5) * Math.min(spread, 14), y: y + (Math.random() - .5) * Math.min(spread, 14),
+      vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - .25,
+      r: Math.random() * 5 + 3, a: Math.random() * 6.28, va: (Math.random() - .5) * .2,
+      c: SPARK_COLORS[(Math.random() * SPARK_COLORS.length) | 0], life: 0, max: 26 + Math.random() * 26
+    });
+  }
+  if (!raf) raf = requestAnimationFrame(tick);
+}
+let lastSpark = 0;
+addEventListener("pointermove", e => {
+  const now = performance.now();
+  if (now - lastSpark < 22) return;
+  lastSpark = now;
+  sparkle(e.clientX, e.clientY, e.pointerType === "mouse" ? 2 : 3);
+}, { passive: true });
+addEventListener("touchmove", e => {
+  const now = performance.now();
+  if (now - lastSpark < 30) return;
+  lastSpark = now;
+  for (const t of e.touches) sparkle(t.clientX, t.clientY, 3);
+}, { passive: true });
+addEventListener("pointerdown", e => sparkle(e.clientX, e.clientY, 9, 60), { passive: true });
+function drawStar(r) {
+  ctx.beginPath();
+  for (let k = 0; k < 8; k++) {
+    const rr = k % 2 ? r * .3 : r, an = k * Math.PI / 4;
+    ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr);
+  }
+  ctx.closePath(); ctx.fill();
+}
 function drawHeart(s) {
   ctx.beginPath();
   ctx.moveTo(0, s * .3);
@@ -931,8 +1156,18 @@ function drawHeart(s) {
 }
 function tick() {
   ctx.clearRect(0, 0, innerWidth, innerHeight);
-  parts = parts.filter(p => p.y < innerHeight + 40 && p.life < 400);
+  parts = parts.filter(p => p.y < innerHeight + 40 && p.life < (p.spark ? p.max : 400));
   for (const p of parts) {
+    if (p.spark) {
+      p.life++; p.vx *= .96; p.vy = p.vy * .96 + .02; p.x += p.vx; p.y += p.vy; p.a += p.va;
+      const t = p.life / p.max;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a);
+      ctx.globalAlpha = 1 - t; ctx.fillStyle = p.c;
+      ctx.shadowColor = p.c; ctx.shadowBlur = 10;
+      drawStar(p.r * (t < .25 ? .6 + t * 1.6 : 1 - (t - .25) * .6));
+      ctx.restore();
+      continue;
+    }
     p.life++; p.vy += .22; p.vx *= .99; p.x += p.vx + Math.sin(p.life / 12) * .6; p.y += p.vy; p.a += p.va;
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c;
     if (p.heart) drawHeart(p.r * 1.3);
